@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Nasaan Ba?",
+    "slug": "nasaan-ba",
+    "scheme": "nasaanba",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icons/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nasaanba.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Ginagamit ang Face ID para i-protect ang iyong inventory."
+      }
+    },
+    "android": {
+      "package": "com.nasaanba.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT", "SCHEDULE_EXACT_ALARM", "POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icons/notification-icon.png",
+          "color": "#ffffff"
+        }
+      ],
+      "expo-secure-store",
+      "expo-local-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kailangan ng access sa photos para maglagay ng larawan sa item."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {}
+    }
+  }
+}

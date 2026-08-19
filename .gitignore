@@ -1,0 +1,25 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+.DS_Store
+*.pem
+.env*.local
+
+# Local SQLite files if ever run in a simulator-persisted path
+*.db
+*.db-shm
+*.db-wal
+
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+.metro-health-check*
+expo-env.d.ts
