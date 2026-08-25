@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Nasaan Ba?",
+    "name": "Nasaan ba?",
     "slug": "nasaan-ba",
     "scheme": "nasaanba",
     "version": "1.0.0",
@@ -8,11 +8,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "assetBundlePatterns": ["**/*"],
+    "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nasaanba.app",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Ginagamit ang Face ID para i-protect ang iyong inventory."
+        "NSFaceIDUsageDescription": "Face ID is used to protect your inventory."
       }
     },
     "android": {
@@ -28,7 +29,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Kailangan ng access sa photos para maglagay ng larawan sa item."
+          "photosPermission": "Photo access is needed to add an image to an item."
         }
       ]
     ],

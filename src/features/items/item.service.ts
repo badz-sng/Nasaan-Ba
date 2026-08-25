@@ -1,6 +1,6 @@
-import { createItemSchema, type CreateItemFormValues } from './item.validation';
+import { createItemSchema, updateItemSchema, type CreateItemFormValues } from './item.validation';
 import { itemRepository } from './item.repository';
-import type { Item, ItemWithLocation } from './item.types';
+import type { FindAllItemsOptions, Item, ItemWithLocation } from './item.types';
 
 export class ItemServiceError extends Error {
   constructor(message: string, public readonly fieldErrors?: Record<string, string>) {
@@ -18,7 +18,7 @@ class ItemService {
       for (const issue of parsed.error.issues) {
         fieldErrors[issue.path.join('.')] = issue.message;
       }
-      throw new ItemServiceError('Hindi valid ang item details.', fieldErrors);
+      throw new ItemServiceError('The item details are invalid.', fieldErrors);
     }
 
     try {
@@ -28,19 +28,19 @@ class ItemService {
       // deleted between screen load and submit) become a user-facing
       // message here instead of leaking a raw SQLite error to the UI.
       throw new ItemServiceError(
-        'Hindi na-save ang item. Baka na-delete na yung napiling lokasyon — subukan ulit.'
+        'Could not save the item. The selected location may have been deleted — please try again.'
       );
     }
   }
 
   async moveItem(itemId: string, newLocationId: string): Promise<void> {
     if (!itemId || !newLocationId) {
-      throw new ItemServiceError('Kailangan ng item at bagong lokasyon.');
+      throw new ItemServiceError('An item and a new location are required.');
     }
     try {
       await itemRepository.moveToLocation(itemId, newLocationId);
     } catch (err) {
-      throw new ItemServiceError('Hindi na-move ang item. Subukan ulit.');
+      throw new ItemServiceError('Could not move the item. Please try again.');
     }
   }
 
@@ -54,6 +54,56 @@ class ItemService {
 
   async getLocationHistory(itemId: string) {
     return itemRepository.getLocationHistory(itemId);
+  }
+
+  async getItems(options?: FindAllItemsOptions): Promise<ItemWithLocation[]> {
+    return itemRepository.findAll(options);
+  }
+
+  async updateItem(id: string, rawInput: unknown): Promise<Item> {
+    const parsed = updateItemSchema.safeParse(rawInput);
+    if (!parsed.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        fieldErrors[issue.path.join('.')] = issue.message;
+      }
+      throw new ItemServiceError('The item details are invalid.', fieldErrors);
+    }
+
+    const existing = await itemRepository.findById(id);
+    if (!existing) {
+      throw new ItemServiceError('Item not found.');
+    }
+
+    try {
+      return await itemRepository.update(id, parsed.data);
+    } catch {
+      throw new ItemServiceError('Could not update the item. Please try again.');
+    }
+  }
+
+  async archiveItem(id: string): Promise<void> {
+    const existing = await itemRepository.findById(id);
+    if (!existing) {
+      throw new ItemServiceError('Item not found.');
+    }
+    try {
+      await itemRepository.archive(id);
+    } catch {
+      throw new ItemServiceError('Could not archive the item. Please try again.');
+    }
+  }
+
+  async deleteItem(id: string): Promise<void> {
+    const existing = await itemRepository.findById(id);
+    if (!existing) {
+      throw new ItemServiceError('Item not found.');
+    }
+    try {
+      await itemRepository.delete(id);
+    } catch {
+      throw new ItemServiceError('Could not delete the item. Please try again.');
+    }
   }
 }
 

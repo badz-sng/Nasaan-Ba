@@ -1,16 +1,190 @@
-import { View, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  Alert,
+  ScrollView,
+} from 'react-native';
+import { useState } from 'react';
+import { LocationTree } from '@/components/LocationTree';
+import { useLocationTree, useCreateLocation, useDeleteLocation } from '@/hooks/useLocations';
+import type { LocationTreeNode } from '@/features/locations/location.types';
 
-// TODO: wire to location.service.ts — render as a hierarchical tree
-// (LocationTree component), root nodes = locations where parent_id IS NULL.
 export default function LocationsScreen() {
+  const { tree, isLoading, error, refresh } = useLocationTree();
+  const { createLocation, isSubmitting } = useCreateLocation();
+  const { deleteLocation } = useDeleteLocation();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [parentId, setParentId] = useState<string | null>(null);
+  const [parentLabel, setParentLabel] = useState<string | null>(null);
+
+  const handleAdd = async () => {
+    const result = await createLocation({
+      name: newName,
+      parentId: parentId ?? undefined,
+    });
+
+    if (result.success) {
+      setNewName('');
+      setParentId(null);
+      setParentLabel(null);
+      setShowAddForm(false);
+      await refresh();
+      return;
+    }
+
+    Alert.alert('Could not save', result.message);
+  };
+
+  const handleDelete = (node: LocationTreeNode) => {
+    Alert.alert('Delete this location?', node.path, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const result = await deleteLocation(node.id);
+          if (result.success) {
+            await refresh();
+          } else {
+            Alert.alert('Could not delete', result.message);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleSelectParent = (node: LocationTreeNode) => {
+    setParentId(node.id);
+    setParentLabel(node.path);
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.placeholder}>Locations tree — TODO: wire to location.service.ts</Text>
+      <Text style={styles.title}>Locations</Text>
+
+      {isLoading && <ActivityIndicator style={styles.loader} />}
+
+      {!isLoading && error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable onPress={refresh}>
+            <Text style={styles.retryText}>Try Again</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {!isLoading && !error && (
+        <ScrollView style={styles.treeContainer}>
+          <LocationTree nodes={tree} onDelete={handleDelete} />
+        </ScrollView>
+      )}
+
+      {showAddForm && (
+        <View style={styles.addForm}>
+          <Text style={styles.formLabel}>Name</Text>
+          <TextInput
+            style={styles.input}
+            value={newName}
+            onChangeText={setNewName}
+            placeholder="Bedroom Cabinet"
+          />
+          <Text style={styles.formLabel}>Parent (optional)</Text>
+          <Text style={styles.parentHint}>
+            {parentLabel ?? 'Root level — no parent'}
+          </Text>
+          <ScrollView style={styles.parentPicker} nestedScrollEnabled>
+            <Pressable
+              style={styles.parentOption}
+              onPress={() => {
+                setParentId(null);
+                setParentLabel(null);
+              }}
+            >
+              <Text>— Root level —</Text>
+            </Pressable>
+            <LocationTree nodes={tree} onSelect={handleSelectParent} selectedId={parentId} />
+          </ScrollView>
+          <View style={styles.formActions}>
+            <Pressable style={styles.cancelButton} onPress={() => setShowAddForm(false)}>
+              <Text>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
+              onPress={handleAdd}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.saveButtonText}>{isSubmitting ? 'Saving...' : 'Save'}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {!showAddForm && (
+        <Pressable style={styles.addButton} onPress={() => setShowAddForm(true)}>
+          <Text style={styles.addButtonText}>+ Add Location</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  placeholder: { color: '#888', textAlign: 'center' },
+  container: { flex: 1, padding: 16, paddingTop: 60 },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 16 },
+  loader: { marginTop: 24 },
+  errorBox: { alignItems: 'center', marginTop: 24, gap: 8 },
+  errorText: { color: '#b91c1c', textAlign: 'center' },
+  retryText: { color: '#2563eb', fontWeight: '600' },
+  treeContainer: { flex: 1 },
+  addButton: {
+    backgroundColor: '#111',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  addButtonText: { color: '#fff', fontWeight: '600' },
+  addForm: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    maxHeight: '60%',
+  },
+  formLabel: { fontSize: 13, color: '#666', marginTop: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    marginTop: 4,
+  },
+  parentHint: { fontSize: 14, color: '#333', marginTop: 4, marginBottom: 8 },
+  parentPicker: { maxHeight: 160, backgroundColor: '#fff', borderRadius: 8 },
+  parentOption: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  formActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  cancelButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+    alignItems: 'center',
+  },
+  saveButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#111',
+    alignItems: 'center',
+  },
+  saveButtonDisabled: { opacity: 0.5 },
+  saveButtonText: { color: '#fff', fontWeight: '600' },
 });

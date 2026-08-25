@@ -34,3 +34,23 @@ export interface CreateItemInput {
   notes?: string;
   tagIds?: string[];
 }
+
+export interface UpdateItemInput {
+  name?: string;
+  description?: string;
+  categoryId?: string | null;
+  quantity?: number;
+  unit?: string;
+  condition?: string;
+  photoUri?: string | null;
+  notes?: string;
+  tagIds?: string[];
+}
+
+export interface FindAllItemsOptions {
+  offset?: number;
+  limit?: number;
+  categoryId?: string;
+  tagId?: string;
+  status?: ItemStatus;
+}

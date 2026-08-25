@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { itemService, ItemServiceError } from '@/features/items/item.service';
 import type { ItemWithLocation } from '@/features/items/item.types';
+import { useFocusEffect } from 'expo-router';
 
 interface UseRecentItemsResult {
   items: ItemWithLocation[];
@@ -23,16 +24,18 @@ export function useRecentItems(limit = 10): UseRecentItemsResult {
     } catch (err) {
       // Fallback: show empty state + retry, not a blank crash.
       setError(
-        err instanceof ItemServiceError ? err.message : 'Hindi ma-load ang mga item. I-pull to refresh.'
+        err instanceof ItemServiceError ? err.message : 'Could not load items. Pull to refresh.'
       );
     } finally {
       setIsLoading(false);
     }
   }, [limit]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   return { items, isLoading, error, refresh };
 }
@@ -52,11 +55,136 @@ export function useCreateItem() {
         setFieldErrors(err.fieldErrors);
         return { success: false as const, message: err.message };
       }
-      return { success: false as const, message: 'May naganap na error. Subukan ulit.' };
+      return { success: false as const, message: 'An unexpected error occurred. Please try again.' };
     } finally {
       setIsSubmitting(false);
     }
   }, []);
 
   return { createItem, isSubmitting, fieldErrors };
+}
+
+interface UseItemsOptions {
+  pageSize?: number;
+  categoryId?: string;
+  tagId?: string;
+}
+
+export function useItems(options: UseItemsOptions = {}) {
+  const { pageSize = 20, categoryId, tagId } = options;
+  const [items, setItems] = useState<ItemWithLocation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+
+  const fetchPage = useCallback(
+    async (pageOffset: number, append: boolean) => {
+      if (append) setIsLoadingMore(true);
+      else setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await itemService.getItems({
+          offset: pageOffset,
+          limit: pageSize,
+          categoryId,
+          tagId,
+        });
+        setHasMore(result.length === pageSize);
+        setItems((prev) => (append ? [...prev, ...result] : result));
+        setOffset(pageOffset + result.length);
+      } catch (err) {
+        setError(
+          err instanceof ItemServiceError ? err.message : 'Could not load items. Please try again.'
+        );
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [pageSize, categoryId, tagId]
+  );
+
+  const refresh = useCallback(async () => {
+    setOffset(0);
+    await fetchPage(0, false);
+  }, [fetchPage]);
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    await fetchPage(offset, true);
+  }, [fetchPage, offset, isLoadingMore, hasMore]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+);
+  return { items, isLoading, isLoadingMore, error, hasMore, refresh, loadMore };
+}
+
+export function useUpdateItem() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string> | undefined>();
+
+  const updateItem = useCallback(async (id: string, input: unknown) => {
+    setIsSubmitting(true);
+    setFieldErrors(undefined);
+    try {
+      const item = await itemService.updateItem(id, input);
+      return { success: true as const, item };
+    } catch (err) {
+      if (err instanceof ItemServiceError) {
+        setFieldErrors(err.fieldErrors);
+        return { success: false as const, message: err.message };
+      }
+      return { success: false as const, message: 'An unexpected error occurred. Please try again.' };
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, []);
+
+  return { updateItem, isSubmitting, fieldErrors };
+}
+
+export function useArchiveItem() {
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  const archiveItem = useCallback(async (id: string) => {
+    setIsArchiving(true);
+    try {
+      await itemService.archiveItem(id);
+      return { success: true as const };
+    } catch (err) {
+      const message =
+        err instanceof ItemServiceError ? err.message : 'Could not archive the item. Please try again.';
+      return { success: false as const, message };
+    } finally {
+      setIsArchiving(false);
+    }
+  }, []);
+
+  return { archiveItem, isArchiving };
+}
+
+export function useDeleteItem() {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deleteItem = useCallback(async (id: string) => {
+    setIsDeleting(true);
+    try {
+      await itemService.deleteItem(id);
+      return { success: true as const };
+    } catch (err) {
+      const message =
+        err instanceof ItemServiceError ? err.message : 'Could not delete the item. Please try again.';
+      return { success: false as const, message };
+    } finally {
+      setIsDeleting(false);
+    }
+  }, []);
+
+  return { deleteItem, isDeleting };
 }

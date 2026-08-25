@@ -1,19 +1,37 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Link } from 'expo-router';
 
-// TODO: list of Reminders / Categories / Tags / Backup & Restore / App Lock /
-// Settings / About, per spec section 3.1.
+const MORE_LINKS = [
+  { href: '/more/reminders', label: 'Reminders' },
+  { href: '/more/categories', label: 'Categories' },
+  { href: '/more/tags', label: 'Tags' },
+  { href: '/more/backup', label: 'Backup & Restore' },
+  { href: '/more/app-lock', label: 'App Lock' },
+  { href: '/more/settings', label: 'Settings' },
+  { href: '/more/about', label: 'About' },
+] as const;
+
 export default function MoreScreen() {
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>More</Text>
-      <Link href="/more/backup" style={styles.link}>Backup &amp; Restore</Link>
-    </View>
+      {MORE_LINKS.map((link) => (
+        <Link key={link.href} href={link.href} style={styles.link}>
+          {link.label}
+        </Link>
+      ))}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, paddingTop: 60, gap: 16 },
-  title: { fontSize: 20, fontWeight: '700' },
-  link: { color: '#2563eb', fontSize: 16 },
+  container: { flex: 1, padding: 24, paddingTop: 60 },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 24 },
+  link: {
+    color: '#2563eb',
+    fontSize: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
 });

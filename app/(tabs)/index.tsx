@@ -7,11 +7,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Nasaan Ba?</Text>
+      <Text style={styles.title}>Nasaan ba?</Text>
 
       <Link href="/search" asChild>
         <Pressable style={styles.searchBar}>
-          <Text style={styles.searchPlaceholder}>🔍 Nasaan ang gamit mo?</Text>
+          <Text style={styles.searchPlaceholder}>Search your items</Text>
         </Pressable>
       </Link>
 
@@ -23,13 +23,13 @@ export default function HomeScreen() {
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
           <Pressable onPress={refresh}>
-            <Text style={styles.retryText}>I-retry</Text>
+            <Text style={styles.retryText}>Try Again</Text>
           </Pressable>
         </View>
       )}
 
       {!isLoading && !error && items.length === 0 && (
-        <Text style={styles.emptyText}>Wala ka pang naka-record na item. Simulan mo na!</Text>
+        <Text style={styles.emptyText}>You have no recorded items yet. Add one to get started!</Text>
       )}
 
       {!isLoading && !error && items.length > 0 && (
@@ -43,7 +43,7 @@ export default function HomeScreen() {
               <Pressable style={styles.itemRow}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemLocation}>
-                  📍 {item.currentLocationPath ?? 'Walang lokasyon'}
+                  Location: {item.currentLocationPath ?? 'No location'}
                 </Text>
               </Pressable>
             </Link>

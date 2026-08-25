@@ -1,5 +1,5 @@
 -- ============================================================
--- Nasaan ba? — Initial schema migration
+-- Nasaan Ba? — Initial schema migration
 -- Run once via runMigrations() in src/database/client.ts
 -- ============================================================
 
@@ -23,8 +23,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
   notes,
   category_name,
   location_path,
-  tags,
-  content=''
+  tags
 );
 
 -- Keep items_fts in sync on item insert

@@ -42,7 +42,7 @@ export async function initDatabase(): Promise<ExpoSQLiteDatabase<typeof schema>>
     // Surface a typed error the UI layer can catch and turn into a
     // "Reset local database" recovery screen instead of a white screen.
     throw new DatabaseInitError(
-      'Hindi ma-open o ma-migrate ang local database. Maaaring corrupted ang file.',
+      'Could not open or migrate the local database. The file may be corrupted.',
       err
     );
   }
@@ -66,7 +66,11 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
   const appliedNames = new Set(applied.map((r) => r.name));
 
   const { sql: initialSql } = await import('./migrations/0000_initial');
-  const migrations = [{ name: '0000_initial', sql: initialSql }];
+  const { sql: ftsSyncSql } = await import('./migrations/0001_fts_sync');
+  const migrations = [
+    { name: '0000_initial', sql: initialSql },
+    { name: '0001_fts_sync', sql: ftsSyncSql },
+  ];
 
   for (const migration of migrations) {
     if (appliedNames.has(migration.name)) continue;

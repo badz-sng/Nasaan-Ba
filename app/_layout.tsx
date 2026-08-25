@@ -20,7 +20,7 @@ export default function RootLayout() {
         const message =
           err instanceof DatabaseInitError
             ? err.message
-            : 'Hindi na-load ang application. Subukan ulit.';
+            : 'The application could not load. Please try again.';
         setBoot({ status: 'error', message });
       }
     })();
@@ -31,7 +31,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <View style={styles.center}>
           <ActivityIndicator size="large" />
-          <Text style={styles.loadingText}>Inihahanda ang Nasaan Ba?...</Text>
+          <Text style={styles.loadingText}>Preparing Nasaan ba?...</Text>
         </View>
       </SafeAreaProvider>
     );
@@ -64,28 +64,28 @@ function DatabaseErrorScreen({ message, onRetry }: { message: string; onRetry: (
 
   return (
     <View style={styles.center}>
-      <Text style={styles.errorTitle}>May problema sa database</Text>
+      <Text style={styles.errorTitle}>There is a database problem</Text>
       <Text style={styles.errorMessage}>{message}</Text>
 
       {!confirmingReset ? (
         <View style={styles.buttonRow}>
           <Pressable style={styles.buttonSecondary} onPress={onRetry}>
-            <Text style={styles.buttonSecondaryText}>Subukan Ulit</Text>
+            <Text style={styles.buttonSecondaryText}>Try Again</Text>
           </Pressable>
           <Pressable style={styles.buttonDanger} onPress={() => setConfirmingReset(true)}>
-            <Text style={styles.buttonDangerText}>I-reset ang Database</Text>
+            <Text style={styles.buttonDangerText}>Reset Database</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.buttonRow}>
           <Text style={styles.warningText}>
-            Mawawala lahat ng laman ng app. Sigurado ka ba?
+            All app data will be deleted. Are you sure?
           </Text>
           <Pressable style={styles.buttonSecondary} onPress={() => setConfirmingReset(false)}>
-            <Text style={styles.buttonSecondaryText}>Kanselahin</Text>
+            <Text style={styles.buttonSecondaryText}>Cancel</Text>
           </Pressable>
           <Pressable style={styles.buttonDanger} onPress={handleReset}>
-            <Text style={styles.buttonDangerText}>Oo, i-reset</Text>
+            <Text style={styles.buttonDangerText}>Yes, Reset</Text>
           </Pressable>
         </View>
       )}

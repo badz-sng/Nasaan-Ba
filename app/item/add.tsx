@@ -1,17 +1,33 @@
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { useCreateItem } from '@/hooks/useItems';
+import { useAllLocations } from '@/hooks/useLocations';
+import { LocationPicker } from '@/components/LocationPicker';
+import { UNKNOWN_LOCATION_NAME } from '@/database/seeders/defaultData';
 
-// Minimal form matching spec 3.6: only name + location are required.
-// Location picker (LocationPicker component) is stubbed here with a
-// text field pending the Locations module — swap once that's built.
 export default function AddItemScreen() {
   const [name, setName] = useState('');
-  const [locationId, setLocationId] = useState('');
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const { createItem, isSubmitting, fieldErrors } = useCreateItem();
+  const { locations } = useAllLocations();
+
+  useEffect(() => {
+    if (locationId || locations.length === 0) return;
+    const unknown = locations.find((l) => l.name === UNKNOWN_LOCATION_NAME);
+    if (unknown) {
+      setLocationId(unknown.id);
+      setLocationLabel(unknown.path);
+    }
+  }, [locations, locationId]);
 
   const handleSave = async () => {
+    if (!locationId) {
+      Alert.alert('Could not save', 'Choose a location.');
+      return;
+    }
+
     const result = await createItem({ name, locationId });
 
     if (result.success) {
@@ -19,8 +35,7 @@ export default function AddItemScreen() {
       return;
     }
 
-    // Fallback: surface a clear message instead of a silent failure.
-    Alert.alert('Hindi na-save', result.message);
+    Alert.alert('Could not save', result.message);
   };
 
   return (
@@ -37,20 +52,22 @@ export default function AddItemScreen() {
       {fieldErrors?.name && <Text style={styles.error}>{fieldErrors.name}</Text>}
 
       <Text style={styles.label}>Location</Text>
-      <TextInput
-        style={styles.input}
+      <LocationPicker
         value={locationId}
-        onChangeText={setLocationId}
-        placeholder="(TODO: LocationPicker — select from tree)"
+        label={locationLabel}
+        onChange={(id, path) => {
+          setLocationId(id);
+          setLocationLabel(path);
+        }}
+        error={fieldErrors?.locationId}
       />
-      {fieldErrors?.locationId && <Text style={styles.error}>{fieldErrors.locationId}</Text>}
 
       <Pressable
         style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
         onPress={handleSave}
         disabled={isSubmitting}
       >
-        <Text style={styles.saveButtonText}>{isSubmitting ? 'Sine-save...' : 'Save Item'}</Text>
+        <Text style={styles.saveButtonText}>{isSubmitting ? 'Saving...' : 'Save Item'}</Text>
       </Pressable>
     </View>
   );

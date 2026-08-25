@@ -4,8 +4,8 @@ import { z } from 'zod';
 // is optional — don't add required fields here without a product reason,
 // every required field is friction against the "few seconds" MVP principle.
 export const createItemSchema = z.object({
-  name: z.string().trim().min(1, 'Kailangan ng pangalan ng item').max(200),
-  locationId: z.string().uuid('Pumili ng lokasyon'),
+  name: z.string().trim().min(1, 'Enter an item name').max(200),
+  locationId: z.string().uuid('Choose a location'),
   description: z.string().trim().max(1000).optional(),
   categoryId: z.string().uuid().optional(),
   quantity: z.number().int().min(1).default(1),
@@ -16,4 +16,17 @@ export const createItemSchema = z.object({
   tagIds: z.array(z.string().uuid()).optional(),
 });
 
+export const updateItemSchema = z.object({
+  name: z.string().trim().min(1, 'Enter an item name').max(200).optional(),
+  description: z.string().trim().max(1000).optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  quantity: z.number().int().min(1).optional(),
+  unit: z.string().trim().max(50).optional(),
+  condition: z.string().trim().max(100).optional(),
+  photoUri: z.string().nullable().optional(),
+  notes: z.string().trim().max(2000).optional(),
+  tagIds: z.array(z.string().uuid()).optional(),
+});
+
 export type CreateItemFormValues = z.infer<typeof createItemSchema>;
+export type UpdateItemFormValues = z.infer<typeof updateItemSchema>;
