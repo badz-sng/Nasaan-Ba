@@ -13,6 +13,18 @@ export class LocationServiceError extends Error {
 }
 
 class LocationService {
+  private async countDescendants(id: string): Promise<number> {
+    const location = await locationRepository.findById(id);
+    if (!location) {
+      return 0;
+    }
+
+    const allLocations = await locationRepository.findAll();
+    const descendantPrefix = `${location.path}/`;
+
+    return allLocations.filter((candidate) => candidate.path.startsWith(descendantPrefix)).length;
+  }
+
   buildTree(flat: Location[]): LocationTreeNode[] {
     const map = new Map<string, LocationTreeNode>();
     const roots: LocationTreeNode[] = [];
@@ -102,6 +114,32 @@ class LocationService {
   }
 
   async deleteLocation(id: string): Promise<void> {
+    const descendantCount = await this.countDescendants(id);
+    if (descendantCount > 0) {
+      throw new LocationServiceError(
+        'This location has sub-locations. Confirm deletion to continue.',
+        {
+          requiresSubtreeConfirmation: 'true',
+          descendantCount: String(descendantCount),
+        }
+      );
+    }
+
+    const itemCount = await locationRepository.countItemsAtLocation(id);
+    if (itemCount > 0) {
+      throw new LocationServiceError(
+        `This location contains ${itemCount} item(s). Move the items before deleting the location.`
+      );
+    }
+
+    try {
+      await locationRepository.delete(id);
+    } catch {
+      throw new LocationServiceError('Could not delete the location. It may still contain sublocations.');
+    }
+  }
+
+  async deleteLocationWithSubtree(id: string): Promise<void> {
     const itemCount = await locationRepository.countItemsAtLocation(id);
     if (itemCount > 0) {
       throw new LocationServiceError(

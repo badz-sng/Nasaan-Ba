@@ -107,22 +107,57 @@ export function useCreateLocation() {
 
 export function useDeleteLocation() {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string> | undefined>();
 
   const deleteLocation = useCallback(async (id: string) => {
     setIsDeleting(true);
+    setFieldErrors(undefined);
     try {
       await locationService.deleteLocation(id);
       return { success: true as const };
     } catch (err) {
-      const message =
-        err instanceof LocationServiceError
-          ? err.message
-          : 'Could not delete the location. Please try again.';
-      return { success: false as const, message };
+      if (err instanceof LocationServiceError) {
+        setFieldErrors(err.fieldErrors);
+        return {
+          success: false as const,
+          message: err.message,
+          fieldErrors: err.fieldErrors,
+        };
+      }
+      return {
+        success: false as const,
+        message: 'Could not delete the location. Please try again.',
+        fieldErrors: undefined,
+      };
     } finally {
       setIsDeleting(false);
     }
   }, []);
 
-  return { deleteLocation, isDeleting };
+  const deleteLocationWithSubtree = useCallback(async (id: string) => {
+    setIsDeleting(true);
+    setFieldErrors(undefined);
+    try {
+      await locationService.deleteLocationWithSubtree(id);
+      return { success: true as const };
+    } catch (err) {
+      if (err instanceof LocationServiceError) {
+        setFieldErrors(err.fieldErrors);
+        return {
+          success: false as const,
+          message: err.message,
+          fieldErrors: err.fieldErrors,
+        };
+      }
+      return {
+        success: false as const,
+        message: 'Could not delete the location. Please try again.',
+        fieldErrors: undefined,
+      };
+    } finally {
+      setIsDeleting(false);
+    }
+  }, []);
+
+  return { deleteLocation, deleteLocationWithSubtree, isDeleting, fieldErrors };
 }
