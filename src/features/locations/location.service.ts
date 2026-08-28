@@ -91,15 +91,18 @@ class LocationService {
       throw new LocationServiceError('The location details are invalid.', fieldErrors);
     }
 
+    if (parsed.data.parentId !== undefined && parsed.data.parentId !== null) {
+      if (parsed.data.parentId === id) {
+        throw new LocationServiceError('A location cannot be its own parent.');
+      }
+    }
+
     const existing = await locationRepository.findById(id);
     if (!existing) {
       throw new LocationServiceError('Location not found.');
     }
 
     if (parsed.data.parentId !== undefined && parsed.data.parentId !== null) {
-      if (parsed.data.parentId === id) {
-        throw new LocationServiceError('A location cannot be its own parent.');
-      }
       const wouldCycle = await locationRepository.isAncestor(id, parsed.data.parentId);
       if (wouldCycle) {
         throw new LocationServiceError('A location cannot be placed inside its own descendant.');
