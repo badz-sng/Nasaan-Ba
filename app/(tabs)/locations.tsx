@@ -17,7 +17,8 @@ import type { LocationTreeNode } from '@/features/locations/location.types';
 export default function LocationsScreen() {
   const { tree, isLoading, error, refresh } = useLocationTree();
   const { createLocation, isSubmitting } = useCreateLocation();
-  const { deleteLocation } = useDeleteLocation();
+  const { deleteLocation, deleteLocationWithSubtree, fieldErrors } = useDeleteLocation();
+  void fieldErrors;
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [parentId, setParentId] = useState<string | null>(null);
@@ -51,9 +52,35 @@ export default function LocationsScreen() {
           const result = await deleteLocation(node.id);
           if (result.success) {
             await refresh();
-          } else {
-            Alert.alert('Could not delete', result.message);
+            return;
           }
+
+          const deleteFieldErrors = result.fieldErrors;
+          if (deleteFieldErrors?.requiresSubtreeConfirmation === 'true') {
+            Alert.alert(
+              'Delete sub-locations?',
+              `This will also delete ${deleteFieldErrors.descendantCount} sub-location(s). Continue?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete All',
+                  style: 'destructive',
+                  onPress: async () => {
+                    const subtreeResult = await deleteLocationWithSubtree(node.id);
+                    if (subtreeResult.success) {
+                      await refresh();
+                      return;
+                    }
+
+                    Alert.alert('Could not delete', subtreeResult.message);
+                  },
+                },
+              ]
+            );
+            return;
+          }
+
+          Alert.alert('Could not delete', result.message);
         },
       },
     ]);
