@@ -42,10 +42,10 @@ export default function ItemsScreen() {
           ListEmptyComponent={
             !isLoading ? (
               <Text style={styles.emptyText}>No items yet. Add one to get started!</Text>
-            ) : null
+            ) : undefined
           }
           ListFooterComponent={
-            isLoadingMore ? <ActivityIndicator style={styles.footerLoader} /> : null
+            isLoadingMore ? <ActivityIndicator style={styles.footerLoader} /> : undefined
           }
           renderItem={({ item }) => (
             <Link href={{ pathname: '/item/[id]', params: { id: item.id } }} asChild>
