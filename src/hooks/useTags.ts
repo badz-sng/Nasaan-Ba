@@ -62,7 +62,11 @@ export function useCreateTag() {
     }
   }, []);
 
-  return { createTag, isSubmitting, fieldErrors };
+  const clearFieldErrors = useCallback(() => {
+    setFieldErrors(undefined);
+  }, []);
+
+  return { createTag, isSubmitting, fieldErrors, clearFieldErrors };
 }
 
 export function useDeleteTag() {

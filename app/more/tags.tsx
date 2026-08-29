@@ -13,7 +13,7 @@ import { useCreateTag, useDeleteTag, useTags } from '@/hooks/useTags';
 
 export default function TagsScreen() {
   const { tags, isLoading, error, refresh } = useTags();
-  const { createTag, isSubmitting, fieldErrors } = useCreateTag();
+  const { createTag, isSubmitting, fieldErrors, clearFieldErrors } = useCreateTag();
   const { deleteTag, isDeleting } = useDeleteTag();
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
@@ -21,6 +21,7 @@ export default function TagsScreen() {
   const resetForm = () => {
     setName('');
     setShowAddForm(false);
+    clearFieldErrors();
   };
 
   const handleAdd = async () => {
