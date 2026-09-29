@@ -1,6 +1,3 @@
--- Keeps items_fts location_path and tags in sync when item_locations
--- or item_tags change.
-
 CREATE TRIGGER IF NOT EXISTS item_locations_ai_fts AFTER INSERT ON item_locations
 WHEN new.is_current = 1 BEGIN
   UPDATE items_fts SET location_path = (

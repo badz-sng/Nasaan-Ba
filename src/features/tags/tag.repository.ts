@@ -50,6 +50,12 @@ export class TagRepository {
     await db.delete(tags).where(eq(tags.id, id));
   }
 
+  async rename(id: string, name: string): Promise<Tag> {
+    const [tag] = await getDb().update(tags).set({ name }).where(eq(tags.id, id)).returning();
+    if (!tag) throw new Error('Tag not found');
+    return tag as Tag;
+  }
+
   async countItemsUsingTag(id: string): Promise<number> {
     const db = getDb();
     const rows = await db.all<{ count: number }>(

@@ -1,3 +1,5 @@
+jest.mock('@/services/imageService', () => ({ persistPhoto: jest.fn(), removePhoto: jest.fn() }));
+jest.mock('@/services/notificationService', () => ({ reconcileNotifications: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('./item.repository', () => ({
   itemRepository: {
     create: jest.fn(),
@@ -15,6 +17,7 @@ jest.mock('./item.repository', () => ({
 import { itemService, ItemServiceError } from './item.service';
 import { itemRepository } from './item.repository';
 import type { Item, ItemWithLocation } from './item.types';
+import { persistPhoto, removePhoto } from '@/services/imageService';
 
 const mockedItemRepository = itemRepository as jest.Mocked<typeof itemRepository>;
 
@@ -39,6 +42,19 @@ describe('itemService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedItemRepository.findById.mockResolvedValue(existingItem);
+  });
+
+  it('removes replaced photos only after a successful save and cleans new files after rollback', async () => {
+    mockedItemRepository.findById.mockResolvedValue({ ...existingItem, photoUri: 'old-photo' });
+    jest.mocked(persistPhoto).mockResolvedValue('new-photo');
+    mockedItemRepository.update.mockResolvedValue({ ...existingItem, photoUri: 'new-photo' });
+    await itemService.updateItem('item-1', { photoUri: 'cache-photo' });
+    expect(removePhoto).toHaveBeenCalledWith('old-photo');
+    jest.mocked(removePhoto).mockClear();
+    mockedItemRepository.update.mockRejectedValue(new Error('failed write'));
+    await expect(itemService.updateItem('item-1', { photoUri: 'cache-photo' })).rejects.toThrow('Could not update');
+    expect(removePhoto).toHaveBeenCalledWith('new-photo');
+    expect(removePhoto).not.toHaveBeenCalledWith('old-photo');
   });
 
   it('creates a valid item through the repository', async () => {

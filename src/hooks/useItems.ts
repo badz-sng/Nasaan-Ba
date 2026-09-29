@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { itemService, ItemServiceError } from '@/features/items/item.service';
 import type { ItemWithLocation } from '@/features/items/item.types';
 import { useFocusEffect } from 'expo-router';
+import type { LocationHistoryEntry } from '@/features/items/item.types';
 
 interface UseRecentItemsResult {
   items: ItemWithLocation[];
@@ -187,4 +188,50 @@ export function useDeleteItem() {
   }, []);
 
   return { deleteItem, isDeleting };
+}
+
+export function useLocationHistory(itemId: string) {
+  const [history, setHistory] = useState<LocationHistoryEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await itemService.getLocationHistory(itemId);
+      setHistory(result);
+    } catch {
+      setError('Could not load location history.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [itemId]);
+
+  useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
+
+  return { history, isLoading, error, refresh };
+}
+
+export function useMoveItem() {
+  const [isMoving, setIsMoving] = useState(false);
+  const pending = useRef(false);
+
+  const moveItem = useCallback(async (itemId: string, newLocationId: string) => {
+    if (pending.current) return { success: false as const, message: 'A move is already in progress.' };
+    pending.current = true;
+    setIsMoving(true);
+    try {
+      await itemService.moveItem(itemId, newLocationId);
+      return { success: true as const };
+    } catch (err) {
+      const message = err instanceof ItemServiceError ? err.message : 'Could not move the item.';
+      return { success: false as const, message };
+    } finally {
+      pending.current = false;
+      setIsMoving(false);
+    }
+  }, []);
+
+  return { moveItem, isMoving };
 }

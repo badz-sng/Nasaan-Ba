@@ -4,6 +4,7 @@ import {
 } from './location.validation';
 import { locationRepository } from './location.repository';
 import type { Location, LocationTreeNode } from './location.types';
+import { reconcileNotifications } from '@/services/notificationService';
 
 export class LocationServiceError extends Error {
   constructor(message: string, public readonly fieldErrors?: Record<string, string>) {
@@ -20,9 +21,16 @@ class LocationService {
     }
 
     const allLocations = await locationRepository.findAll();
-    const descendantPrefix = `${location.path}/`;
-
-    return allLocations.filter((candidate) => candidate.path.startsWith(descendantPrefix)).length;
+    // ponytail: repeated scans suit small location lists; use a recursive SQL count for very large trees.
+    const descendants = new Set([id]);
+    let size = 0;
+    while (size !== descendants.size) {
+      size = descendants.size;
+      for (const candidate of allLocations) {
+        if (candidate.parentId && descendants.has(candidate.parentId)) descendants.add(candidate.id);
+      }
+    }
+    return descendants.size - 1;
   }
 
   buildTree(flat: Location[]): LocationTreeNode[] {
@@ -137,8 +145,9 @@ class LocationService {
 
     try {
       await locationRepository.delete(id);
+      void reconcileNotifications().catch(() => undefined);
     } catch {
-      throw new LocationServiceError('Could not delete the location. It may still contain sublocations.');
+      throw new LocationServiceError('Could not delete the location. It may still be referenced by item history or sub-locations.');
     }
   }
 
@@ -152,8 +161,9 @@ class LocationService {
 
     try {
       await locationRepository.delete(id);
+      void reconcileNotifications().catch(() => undefined);
     } catch {
-      throw new LocationServiceError('Could not delete the location. It may still contain sublocations.');
+      throw new LocationServiceError('Could not delete the location. It may still be referenced by item history or sub-locations.');
     }
   }
 }

@@ -1,66 +1,73 @@
-# Nasaan Ba? — Scaffold
+﻿# Nasaan ba?
 
-Local-first personal inventory app. This is the initial scaffold —
-architecture wiring is real and working end-to-end for the **Items**
-feature; other features are stubbed with clear TODOs.
+Local-first personal inventory app for Android and iOS, built with Expo Router, SQLite, and Drizzle. Inventory data and photos stay on the device.
 
-## What's actually wired (not just stubbed)
+## Implemented
 
-- Expo Router file-based navigation (tabs + item detail/add routes)
-- SQLite via `expo-sqlite` + Drizzle ORM, full schema from the ERD
-- FTS5 virtual table + sync triggers for search (live from commit #1,
-  not deferred — see architecture discussion)
-- Migration runner with a typed `DatabaseInitError` and an in-app
-  recovery screen (`app/_layout.tsx`) for a corrupted/unopenable DB
-- Data integrity rules enforced at the DB layer: no self-parent
-  location trigger, one-current-location partial unique index
-- Full layered slice for **Items**: validation (zod) → service (business
-  rules + error translation) → repository (SQL, transactions) → hook →
-  screen. Use this as the template for Locations, Reminders, Search, Tags.
-- Seed data: default categories + the "Unknown / Not Stored" system
-  location required by Rule 1
+- Paginated inventory, pull-to-refresh, recent items, and item detail.
+- Item create/edit/archive/delete, including description, quantity, unit, condition, notes, category, and tags.
+- Hierarchical locations with create, rename, reparent, delete confirmation, circular-move validation, and descendant path updates.
+- Item moves with atomic location history, current-location selection, loading/error/retry states, and duplicate-move protection.
+- FTS5 search over item details, category, location path, and tags; synchronized after edits, moves, and renames.
+- Category management and tag create/rename/delete.
+- Camera/library photos, resize/compression, persistent local storage, preview, replacement, and removal.
+- Reminders with create/edit/complete/cancel/delete, optional item/location links, and local notifications.
+- One-time, daily, weekly, and monthly notification triggers, permission handling, foreground reconciliation, and notification navigation.
+- JSON backup export and validated, atomic restore, including photos, history, categories, tags, and reminders.
+- App lock using enrolled device biometrics with device-passcode fallback; content hides when the app leaves the foreground.
+- Settings for notification permission/retry, app lock, and backup.
 
-## Deviations from the original spec, and why
-
-| Spec said | This scaffold does | Why |
-|---|---|---|
-| INTEGER AUTOINCREMENT ids | TEXT UUIDs (`expo-crypto` `randomUUID`) | Your own roadmap has multi-device sync in v3.0 — autoincrement IDs collide across devices, UUIDs don't. Cheap now, expensive to retrofit. |
-| FTS5 "for larger datasets" (future) | FTS5 from the first migration | Search is the core value prop — shouldn't be a later optimization |
-| Manual React Navigation (RootNavigator/MainNavigator/MoreNavigator) | Expo Router (file-based) | Current Expo default in 2026, less boilerplate, same tab structure |
-| No recursive path strategy specified | Denormalized `path`/`depth` columns on `locations` | Avoids N+1 queries per row when rendering breadcrumbs; trade-off is you must update descendants' paths when a location is moved (not yet implemented — see TODO in location.service.ts, which doesn't exist yet) |
-| No backup format specified | TODO'd as JSON envelope with `schema_version` | Cross-version safe; validate before touching DB, never partial-restore |
-
-## Not yet built (in spec's recommended order)
-
-1. ~~Project Setup~~ ✅
-2. ~~SQLite + Migrations~~ ✅
-3. ~~Database Schema~~ ✅
-4. **Location Hierarchy** — needs `location.repository.ts`, `location.service.ts`,
-   `LocationPicker` / `LocationTree` components, and the "no circular
-   locations" ancestor-walk check (Rule 2) in the service layer
-5. ~~Item CRUD~~ (partial — create + read done, update/delete/archive TODO)
-6. ~~Item ↔ Location~~ ✅ (`moveToLocation` in item.repository.ts)
-7. ~~Location History~~ ✅ (`getLocationHistory`)
-8. **Search** — FTS5 table exists and is kept in sync by triggers;
-   `search.service.ts` / `search.repository.ts` querying it: TODO
-9. Categories + Tags — categories are seeded, no CRUD UI yet; tags: TODO
-10. Photos — `imageService.ts` (capture/resize via `expo-image-manipulator`,
-    save to `expo-file-system`): TODO
-11. Reminders — full module: TODO
-12. Notifications — `notificationService.ts` via `expo-notifications`: TODO
-13. Backup/Restore — stub screen only, see TODO comment in
-    `app/more/backup.tsx`
-14. App Lock — `expo-secure-store` + `expo-local-authentication`: TODO
-15. Testing — `jest.config.js` set up, zero tests written yet
-16. UI Polish
-17. Release
-
-## Getting started
+## Run
 
 ```bash
-npm install
+npm ci
 npx expo start
 ```
 
-First run will create `nasaanba.db` on-device and run the initial
-migration + seed automatically (see `app/_layout.tsx`).
+Native APIs need an Android/iOS device or development build. Camera permissions and notification/app-lock behavior must be checked on a device. Face ID requires an iOS development build.
+
+Local reminders import through `src/services/localNotifications.ts`: the installed SDK 57 package's root export initializes remote push registration, which throws on Android Expo Go. The adapter imports local APIs directly and has a regression check against loading push registration. Recheck these package entry points when upgrading Expo. [Expo notification support](https://docs.expo.dev/versions/latest/sdk/notifications/).
+
+## Architecture
+
+Features reuse validation, services, repositories, and hooks. IDs are UUIDs. Locations store a materialized path/depth; renames and moves update descendants by identity.
+
+The installed Drizzle Expo SQLite adapter uses **synchronous transaction callbacks**. Execute statements with `.run()`, `.all()`, or `.get()` inside those callbacks; never use an async callback. Native migration transactions use Expo SQLite's exclusive async transaction API.
+
+Migrations run before screens access the database:
+
+1. `0000_initial`: schema and integrity constraints.
+2. `0001_fts_sync`: historical synchronization migration, superseded by `0002` and skipped on new/upgrading databases.
+3. `0002_fts_rebuild`: replaces the contentless FTS table with readable rows, rebuilds existing data, and synchronizes all relevant item/location/category/tag changes.
+
+SQL and TypeScript migration copies are checked by the database integration tests.
+
+## Backup and reminder behavior
+
+Backups use a versioned JSON envelope and include JPEG photos as base64. Imports are limited to 100 MiB and validate identities, references, hierarchy, history, and photo associations before replacing data. Database writes roll back together; staged photos are removed if restore fails. Existing photos are removed only after a successful replacement.
+
+On Android, export saves to a folder selected with the system picker. On iOS, export uses the native share sheet. Restored notifications receive new device-specific identifiers. App-lock preferences stay on the device and are excluded from inventory backups.
+
+Reminder time entry uses local `YYYY-MM-DD HH:mm`. Repeating reminders begin at the next matching time; monthly reminders on the 29th–31st skip months without that day. One-time overdue reminders remain visible but are not rescheduled automatically. Notification delivery is subject to device settings and OS limits.
+
+## Verification
+
+```bash
+npm run typecheck
+npm test -- --runInBand
+npm run test:database
+npx expo export --platform android --platform ios --output-dir dist --max-workers 2
+git diff --check
+```
+
+Database integration tests require Node 24+ and exercise real SQLite plus the installed Drizzle driver through the Expo synchronous statement contract.
+
+The lint script currently requires ESLint and configuration; these are not installed.
+
+## Before release
+
+- Run the native smoke checks in `projectprogess.md`, including permissions, background app lock, notifications, and file export/import.
+- Verify layouts, accessibility, large inventories, and OS notification limits on Android and iOS.
+- Configure lint, then complete native build/signing and store release setup.
+
+Production JavaScript/Hermes bundle export is a build check, not a signed APK/IPA or store publication.

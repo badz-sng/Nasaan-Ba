@@ -1,3 +1,4 @@
+jest.mock('@/services/notificationService', () => ({ reconcileNotifications: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('./location.repository', () => ({
   locationRepository: {
     findAll: jest.fn(),

@@ -17,9 +17,10 @@ interface LocationPickerProps {
   label?: string | null;
   onChange: (locationId: string, locationPath: string) => void;
   error?: string;
+  disabled?: boolean;
 }
 
-export function LocationPicker({ value, label, onChange, error }: LocationPickerProps) {
+export function LocationPicker({ value, label, onChange, error, disabled }: LocationPickerProps) {
   const [visible, setVisible] = useState(false);
   const { tree, isLoading, error: loadError, refresh } = useLocationTree();
 
@@ -30,7 +31,7 @@ export function LocationPicker({ value, label, onChange, error }: LocationPicker
 
   return (
     <View>
-      <Pressable style={[styles.trigger, error && styles.triggerError]} onPress={() => setVisible(true)}>
+      <Pressable accessibilityRole="button" disabled={disabled} style={[styles.trigger, error && styles.triggerError, disabled && { opacity: 0.5 }]} onPress={() => { void refresh(); setVisible(true); }}>
         <Text style={label ? styles.triggerText : styles.triggerPlaceholder}>
           {label ?? 'Choose a location'}
         </Text>
@@ -38,7 +39,7 @@ export function LocationPicker({ value, label, onChange, error }: LocationPicker
       </Pressable>
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setVisible(false)}>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Choose a Location</Text>

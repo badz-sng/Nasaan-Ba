@@ -161,3 +161,19 @@ export function useDeleteLocation() {
 
   return { deleteLocation, deleteLocationWithSubtree, isDeleting, fieldErrors };
 }
+
+export function useUpdateLocation() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const updateLocation = useCallback(async (id: string, input: unknown) => {
+    setIsSubmitting(true);
+    try {
+      const location = await locationService.updateLocation(id, input);
+      return { success: true as const, location };
+    } catch (err) {
+      return { success: false as const, message: err instanceof LocationServiceError ? err.message : 'Could not update the location.' };
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, []);
+  return { updateLocation, isSubmitting };
+}

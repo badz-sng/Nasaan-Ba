@@ -1,5 +1,5 @@
 import { randomUUID } from 'expo-crypto';
-import { eq, isNull, sql, like, or } from 'drizzle-orm';
+import { eq, isNull, sql } from 'drizzle-orm';
 import { getDb } from '@/database/client';
 import { locations } from '@/database/schema';
 import type { CreateLocationInput, Location, UpdateLocationInput } from './location.types';
@@ -85,8 +85,14 @@ export class LocationRepository {
 
       const oldPath = existing.path;
 
-      await db.transaction(async (tx) => {
-        await tx
+      db.transaction((tx) => {
+        const descendants = tx.all<{ id: string; path: string; depth: number }>(sql`
+          WITH RECURSIVE subtree(id) AS (
+            SELECT id FROM locations WHERE parent_id = ${id}
+            UNION ALL SELECT l.id FROM locations l JOIN subtree s ON l.parent_id = s.id
+          ) SELECT id, path, depth FROM locations WHERE id IN (SELECT id FROM subtree)
+        `);
+        tx
           .update(locations)
           .set({
             name: newName,
@@ -97,37 +103,32 @@ export class LocationRepository {
             description: input.description !== undefined ? input.description : existing.description,
             updatedAt: now,
           })
-          .where(eq(locations.id, id));
+          .where(eq(locations.id, id)).run();
 
-        if (oldPath !== newPath) {
-          const descendants = await tx
-            .select()
-            .from(locations)
-            .where(or(like(locations.path, `${oldPath}/%`), eq(locations.id, id)));
-
+        if (oldPath !== newPath || newDepth !== existing.depth) {
           for (const desc of descendants) {
             if (desc.id === id) continue;
             const suffix = desc.path.slice(oldPath.length);
             const updatedPath = newPath + suffix;
             const depthDelta = newDepth - existing.depth;
-            await tx
+            tx
               .update(locations)
               .set({
                 path: updatedPath,
                 depth: desc.depth + depthDelta,
                 updatedAt: now,
               })
-              .where(eq(locations.id, desc.id));
+              .where(eq(locations.id, desc.id)).run();
           }
         } else if (input.type !== undefined || input.description !== undefined) {
-          await tx
+          tx
             .update(locations)
             .set({
               type: input.type !== undefined ? input.type : existing.type,
               description: input.description !== undefined ? input.description : existing.description,
               updatedAt: now,
             })
-            .where(eq(locations.id, id));
+            .where(eq(locations.id, id)).run();
         }
       });
     } else {

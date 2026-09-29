@@ -6,6 +6,7 @@ const DB_NAME = 'nasaanba.db';
 
 let sqliteDb: SQLite.SQLiteDatabase | null = null;
 let drizzleDb: ExpoSQLiteDatabase<typeof schema> | null = null;
+let initializing: Promise<ExpoSQLiteDatabase<typeof schema>> | null = null;
 
 export class DatabaseInitError extends Error {
   constructor(message: string, public readonly cause?: unknown) {
@@ -21,9 +22,14 @@ export class DatabaseInitError extends Error {
  * Call this once at app boot, before rendering any screen that touches
  * data — see app/_layout.tsx.
  */
-export async function initDatabase(): Promise<ExpoSQLiteDatabase<typeof schema>> {
-  if (drizzleDb) return drizzleDb;
+export function initDatabase(): Promise<ExpoSQLiteDatabase<typeof schema>> {
+  if (drizzleDb) return Promise.resolve(drizzleDb);
+  if (initializing) return initializing;
+  initializing = openDatabase().finally(() => { initializing = null; });
+  return initializing;
+}
 
+async function openDatabase(): Promise<ExpoSQLiteDatabase<typeof schema>> {
   try {
     sqliteDb = await SQLite.openDatabaseAsync(DB_NAME);
 
@@ -32,12 +38,14 @@ export async function initDatabase(): Promise<ExpoSQLiteDatabase<typeof schema>>
     await sqliteDb.execAsync('PRAGMA foreign_keys = ON;');
     await sqliteDb.execAsync('PRAGMA journal_mode = WAL;');
 
-    drizzleDb = drizzle(sqliteDb, { schema });
-
     await runMigrations(sqliteDb);
+    drizzleDb = drizzle(sqliteDb, { schema });
 
     return drizzleDb;
   } catch (err) {
+    if (sqliteDb) await sqliteDb.closeAsync().catch(() => undefined);
+    sqliteDb = null;
+    drizzleDb = null;
     // Fallback path: a corrupted DB file should not hard-crash the app.
     // Surface a typed error the UI layer can catch and turn into a
     // "Reset local database" recovery screen instead of a white screen.
@@ -66,18 +74,21 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
   const appliedNames = new Set(applied.map((r) => r.name));
 
   const { sql: initialSql } = await import('./migrations/0000_initial');
-  const { sql: ftsSyncSql } = await import('./migrations/0001_fts_sync');
+  const { sql: ftsRebuildSql } = await import('./migrations/0002_fts_rebuild');
   const migrations = [
     { name: '0000_initial', sql: initialSql },
-    { name: '0001_fts_sync', sql: ftsSyncSql },
+    // 0002 supersedes 0001. Running 0001 on a populated contentless index can fail before the repair.
+    { name: '0002_fts_rebuild', sql: ftsRebuildSql },
   ];
 
   for (const migration of migrations) {
     if (appliedNames.has(migration.name)) continue;
 
     try {
-      await db.execAsync(migration.sql);
-      await db.runAsync('INSERT INTO __migrations (name) VALUES (?)', migration.name);
+      await db.withExclusiveTransactionAsync(async (tx) => {
+        await tx.execAsync(migration.sql);
+        await tx.runAsync('INSERT INTO __migrations (name) VALUES (?)', migration.name);
+      });
     } catch (err) {
       throw new DatabaseInitError(`Migration "${migration.name}" failed`, err);
     }

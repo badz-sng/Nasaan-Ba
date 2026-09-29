@@ -10,6 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { useCreateTag, useDeleteTag, useTags } from '@/hooks/useTags';
+import { tagService } from '@/features/tags/tag.service';
+import { Link } from 'expo-router';
 
 export default function TagsScreen() {
   const { tags, isLoading, error, refresh } = useTags();
@@ -17,14 +19,24 @@ export default function TagsScreen() {
   const { deleteTag, isDeleting } = useDeleteTag();
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
 
   const resetForm = () => {
     setName('');
+    setEditingId(null);
     setShowAddForm(false);
     clearFieldErrors();
   };
 
   const handleAdd = async () => {
+    if (editingId) {
+      setRenaming(true);
+      try { await tagService.renameTag(editingId, { name }); resetForm(); await refresh(); }
+      catch (err) { Alert.alert('Could not save', err instanceof Error ? err.message : 'Please try again.'); }
+      finally { setRenaming(false); }
+      return;
+    }
     const result = await createTag({ name });
 
     if (result.success) {
@@ -61,6 +73,7 @@ export default function TagsScreen() {
 
   return (
     <View style={styles.container}>
+      <Link href="/(tabs)/more">Back</Link>
       <Text style={styles.title}>Tags</Text>
 
       {isLoading && <ActivityIndicator style={styles.loader} />}
@@ -83,7 +96,7 @@ export default function TagsScreen() {
             <View style={styles.headerBlock}>
               {showAddForm ? (
                 <View style={styles.form}>
-                  <Text style={styles.formLabel}>New tag</Text>
+                  <Text style={styles.formLabel}>{editingId ? 'Rename tag' : 'New tag'}</Text>
                   <TextInput
                     style={styles.input}
                     value={name}
@@ -98,10 +111,10 @@ export default function TagsScreen() {
                     <Pressable
                       style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
                       onPress={handleAdd}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || renaming}
                     >
                       <Text style={styles.saveButtonText}>
-                        {isSubmitting ? 'Saving...' : 'Save'}
+                        {isSubmitting || renaming ? 'Saving...' : 'Save'}
                       </Text>
                     </Pressable>
                   </View>
@@ -115,12 +128,12 @@ export default function TagsScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.row}>
-              <View style={styles.rowBody}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Rename ${item.name}`} style={styles.rowBody} onPress={() => { setEditingId(item.id); setName(item.name); setShowAddForm(true); }}>
                 <Text style={styles.rowName}>{item.name}</Text>
                 <Text style={styles.rowCount}>
                   {item.itemCount} {item.itemCount === 1 ? 'item' : 'items'}
                 </Text>
-              </View>
+              </Pressable>
 
               <Pressable
                 style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}

@@ -13,7 +13,7 @@ export const createItemSchema = z.object({
   condition: z.string().trim().max(100).optional(),
   photoUri: z.string().optional(),
   notes: z.string().trim().max(2000).optional(),
-  tagIds: z.array(z.string().uuid()).optional(),
+  tagIds: z.array(z.string().uuid()).transform((ids) => [...new Set(ids)]).optional(),
 });
 
 export const updateItemSchema = z.object({
@@ -25,7 +25,7 @@ export const updateItemSchema = z.object({
   condition: z.string().trim().max(100).optional(),
   photoUri: z.string().nullable().optional(),
   notes: z.string().trim().max(2000).optional(),
-  tagIds: z.array(z.string().uuid()).optional(),
+  tagIds: z.array(z.string().uuid()).transform((ids) => [...new Set(ids)]).optional(),
 });
 
 export type CreateItemFormValues = z.infer<typeof createItemSchema>;

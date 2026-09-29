@@ -46,6 +46,15 @@ class TagService {
       throw new TagServiceError('Could not delete the tag. Please try again.');
     }
   }
+
+  async renameTag(id: string, input: unknown): Promise<Tag> {
+    const parsed = createTagSchema.safeParse(input);
+    if (!parsed.success) throw new TagServiceError('Enter a valid tag name.');
+    const existing = await tagRepository.findByName(parsed.data.name);
+    if (existing && existing.id !== id) throw new TagServiceError('A tag with this name already exists.');
+    try { return await tagRepository.rename(id, parsed.data.name); }
+    catch { throw new TagServiceError('Could not rename the tag. Please try again.'); }
+  }
 }
 
 export const tagService = new TagService();

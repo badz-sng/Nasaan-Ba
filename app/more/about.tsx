@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { Link } from 'expo-router';
 
 export default function AboutScreen() {
   return (
     <View style={styles.container}>
+      <Link href="/(tabs)/more">Back</Link>
       <Text style={styles.title}>Nasaan ba?</Text>
       <Text style={styles.subtitle}>Local-first personal inventory app</Text>
       <Text style={styles.version}>Version 1.0.0</Text>

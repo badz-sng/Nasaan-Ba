@@ -10,13 +10,16 @@ import {
   ScrollView,
 } from 'react-native';
 import { useState } from 'react';
+import { Link } from 'expo-router';
 import { LocationTree } from '@/components/LocationTree';
-import { useLocationTree, useCreateLocation, useDeleteLocation } from '@/hooks/useLocations';
+import { useLocationTree, useCreateLocation, useDeleteLocation, useUpdateLocation } from '@/hooks/useLocations';
 import type { LocationTreeNode } from '@/features/locations/location.types';
 
 export default function LocationsScreen() {
   const { tree, isLoading, error, refresh } = useLocationTree();
   const { createLocation, isSubmitting } = useCreateLocation();
+  const { updateLocation, isSubmitting: isUpdating } = useUpdateLocation();
+  const [editing, setEditing] = useState<LocationTreeNode | null>(null);
   const { deleteLocation, deleteLocationWithSubtree, fieldErrors } = useDeleteLocation();
   void fieldErrors;
   const [showAddForm, setShowAddForm] = useState(false);
@@ -25,16 +28,18 @@ export default function LocationsScreen() {
   const [parentLabel, setParentLabel] = useState<string | null>(null);
 
   const handleAdd = async () => {
-    const result = await createLocation({
+    const input = {
       name: newName,
-      parentId: parentId ?? undefined,
-    });
+      parentId,
+    };
+    const result = editing ? await updateLocation(editing.id, input) : await createLocation(input);
 
     if (result.success) {
       setNewName('');
       setParentId(null);
       setParentLabel(null);
       setShowAddForm(false);
+      setEditing(null);
       await refresh();
       return;
     }
@@ -108,12 +113,21 @@ export default function LocationsScreen() {
 
       {!isLoading && !error && (
         <ScrollView style={styles.treeContainer}>
-          <LocationTree nodes={tree} onDelete={handleDelete} />
+          <Text style={styles.parentHint}>Tap a location to edit. Hold to delete.</Text>
+          <LocationTree nodes={tree} onDelete={handleDelete} onSelect={(node) => {
+            setEditing(node);
+            setNewName(node.name);
+            setParentId(node.parentId);
+            setParentLabel(null);
+            setShowAddForm(true);
+          }} />
         </ScrollView>
       )}
 
       {showAddForm && (
         <View style={styles.addForm}>
+          <Text>{editing ? `Edit ${editing.name}` : 'New location'}</Text>
+          {editing && <Link href={{ pathname: '/more/reminders', params: { locationId: editing.id } }}>Add Reminder for This Location</Link>}
           <Text style={styles.formLabel}>Name</Text>
           <TextInput
             style={styles.input}
@@ -123,7 +137,7 @@ export default function LocationsScreen() {
           />
           <Text style={styles.formLabel}>Parent (optional)</Text>
           <Text style={styles.parentHint}>
-            {parentLabel ?? 'Root level — no parent'}
+            {parentLabel ?? (parentId ? 'Current parent (unchanged)' : 'Root level — no parent')}
           </Text>
           <ScrollView style={styles.parentPicker} nestedScrollEnabled>
             <Pressable
@@ -138,15 +152,15 @@ export default function LocationsScreen() {
             <LocationTree nodes={tree} onSelect={handleSelectParent} selectedId={parentId} />
           </ScrollView>
           <View style={styles.formActions}>
-            <Pressable style={styles.cancelButton} onPress={() => setShowAddForm(false)}>
+            <Pressable style={styles.cancelButton} onPress={() => { setShowAddForm(false); setEditing(null); setNewName(''); setParentId(null); setParentLabel(null); }}>
               <Text>Cancel</Text>
             </Pressable>
             <Pressable
-              style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
+              style={[styles.saveButton, (isSubmitting || isUpdating) && styles.saveButtonDisabled]}
               onPress={handleAdd}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUpdating}
             >
-              <Text style={styles.saveButtonText}>{isSubmitting ? 'Saving...' : 'Save'}</Text>
+              <Text style={styles.saveButtonText}>{isSubmitting || isUpdating ? 'Saving...' : 'Save'}</Text>
             </Pressable>
           </View>
         </View>

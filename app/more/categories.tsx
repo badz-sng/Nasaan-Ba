@@ -16,6 +16,7 @@ import {
   useUpdateCategory,
 } from '@/hooks/useCategories';
 import type { CategoryWithCount } from '@/features/categories/category.types';
+import { Link } from 'expo-router';
 
 export default function CategoriesScreen() {
   const { categories, isLoading, error, refresh } = useCategories();
@@ -106,6 +107,7 @@ export default function CategoriesScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Categories</Text>
+      <Link href="/(tabs)/more">Back</Link>
 
       {isLoading && <ActivityIndicator style={styles.loader} />}
 

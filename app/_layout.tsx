@@ -4,18 +4,27 @@ import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initDatabase, resetDatabase, DatabaseInitError } from '@/database/client';
 import { seedDefaults } from '@/database/seeders/defaultData';
+import { initializeAppLock } from '@/services/appLockService';
+import { AppLockGate } from '@/components/AppLockGate';
+import { reconcileNotifications } from '@/services/notificationService';
+import * as Notifications from '@/services/localNotifications';
+import { router } from 'expo-router';
+import { AppState } from 'react-native';
 
 type BootState = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string };
 
 export default function RootLayout() {
   const [boot, setBoot] = useState<BootState>({ status: 'loading' });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     (async () => {
       try {
         await initDatabase();
         await seedDefaults();
+        await initializeAppLock();
         setBoot({ status: 'ready' });
+        void reconcileNotifications().catch(() => undefined);
       } catch (err) {
         const message =
           err instanceof DatabaseInitError
@@ -24,7 +33,25 @@ export default function RootLayout() {
         setBoot({ status: 'error', message });
       }
     })();
-  }, []);
+  }, [attempt]);
+
+  useEffect(() => {
+    if (boot.status !== 'ready') return;
+    const openNotification = (response: Notifications.NotificationResponse) => {
+      const itemId = response.notification.request.content.data?.itemId;
+      if (typeof itemId === 'string') router.push({ pathname: '/item/[id]', params: { id: itemId } });
+      else router.push('/more/reminders');
+      void Notifications.clearLastNotificationResponseAsync();
+    };
+    const listener = Notifications.addNotificationResponseReceivedListener(openNotification);
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) openNotification(response);
+    }).catch(() => undefined);
+    const foreground = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void reconcileNotifications().catch(() => undefined);
+    });
+    return () => { listener.remove(); foreground.remove(); };
+  }, [boot.status]);
 
   if (boot.status === 'loading') {
     return (
@@ -40,14 +67,14 @@ export default function RootLayout() {
   if (boot.status === 'error') {
     return (
       <SafeAreaProvider>
-        <DatabaseErrorScreen message={boot.message} onRetry={() => setBoot({ status: 'loading' })} />
+        <DatabaseErrorScreen message={boot.message} onRetry={() => { setBoot({ status: 'loading' }); setAttempt((v) => v + 1); }} />
       </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }} />
+      <AppLockGate><Stack screenOptions={{ headerShown: false }} /></AppLockGate>
     </SafeAreaProvider>
   );
 }

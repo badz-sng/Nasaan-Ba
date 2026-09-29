@@ -1,6 +1,8 @@
-import { createItemSchema, updateItemSchema, type CreateItemFormValues } from './item.validation';
+import { createItemSchema, updateItemSchema } from './item.validation';
 import { itemRepository } from './item.repository';
 import type { FindAllItemsOptions, Item, ItemWithLocation } from './item.types';
+import { persistPhoto, removePhoto } from '@/services/imageService';
+import { reconcileNotifications } from '@/services/notificationService';
 
 export class ItemServiceError extends Error {
   constructor(message: string, public readonly fieldErrors?: Record<string, string>) {
@@ -21,9 +23,16 @@ class ItemService {
       throw new ItemServiceError('The item details are invalid.', fieldErrors);
     }
 
+    let savedPhoto: string | undefined;
+    const originalPhoto = parsed.data.photoUri;
     try {
+      if (parsed.data.photoUri) {
+        savedPhoto = await persistPhoto(parsed.data.photoUri);
+        parsed.data.photoUri = savedPhoto;
+      }
       return await itemRepository.create(parsed.data);
     } catch (err) {
+      if (savedPhoto && savedPhoto !== originalPhoto) removePhoto(savedPhoto);
       // Repository errors (e.g. FK violation because the location was
       // deleted between screen load and submit) become a user-facing
       // message here instead of leaking a raw SQLite error to the UI.
@@ -75,9 +84,18 @@ class ItemService {
       throw new ItemServiceError('Item not found.');
     }
 
+    let savedPhoto: string | undefined;
+    const originalPhoto = parsed.data.photoUri;
     try {
-      return await itemRepository.update(id, parsed.data);
+      if (parsed.data.photoUri && parsed.data.photoUri !== existing.photoUri) {
+        savedPhoto = await persistPhoto(parsed.data.photoUri);
+        parsed.data.photoUri = savedPhoto;
+      }
+      const updated = await itemRepository.update(id, parsed.data);
+      if (parsed.data.photoUri !== undefined && updated.photoUri !== existing.photoUri) removePhoto(existing.photoUri);
+      return updated;
     } catch {
+      if (savedPhoto && savedPhoto !== originalPhoto) removePhoto(savedPhoto);
       throw new ItemServiceError('Could not update the item. Please try again.');
     }
   }
@@ -101,6 +119,8 @@ class ItemService {
     }
     try {
       await itemRepository.delete(id);
+      removePhoto(existing.photoUri);
+      void reconcileNotifications().catch(() => undefined);
     } catch {
       throw new ItemServiceError('Could not delete the item. Please try again.');
     }

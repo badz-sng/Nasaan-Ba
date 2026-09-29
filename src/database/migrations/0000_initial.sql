@@ -1,21 +1,90 @@
--- ============================================================
--- Nasaan ba? — Initial schema migration
--- Run once via runMigrations() in src/database/client.ts
--- ============================================================
-
 PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
 
--- (Drizzle-generated CREATE TABLE statements for categories, locations,
---  items, item_locations, tags, item_tags, reminders go here once you
---  run `npm run db:generate`. Kept out of this hand-written file to avoid
---  drift between schema.ts and the SQL — always generate, don't hand-edit
---  the CREATE TABLEs.)
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  icon TEXT,
+  created_at TEXT NOT NULL DEFAULT (current_timestamp),
+  updated_at TEXT NOT NULL DEFAULT (current_timestamp)
+);
 
--- ------------------------------------------------------------
--- FTS5 virtual table for search (Rule: search must be fast from MVP,
--- not bolted on later — see architecture discussion)
--- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS locations (
+  id TEXT PRIMARY KEY,
+  parent_id TEXT REFERENCES locations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT,
+  description TEXT,
+  path TEXT NOT NULL,
+  depth INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (current_timestamp),
+  updated_at TEXT NOT NULL DEFAULT (current_timestamp)
+);
+CREATE INDEX IF NOT EXISTS idx_locations_parent_id ON locations(parent_id);
+CREATE INDEX IF NOT EXISTS idx_locations_name ON locations(name);
+
+CREATE TABLE IF NOT EXISTS items (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  unit TEXT,
+  condition TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  photo_uri TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (current_timestamp),
+  updated_at TEXT NOT NULL DEFAULT (current_timestamp)
+);
+CREATE INDEX IF NOT EXISTS idx_items_name ON items(name);
+CREATE INDEX IF NOT EXISTS idx_items_category_id ON items(category_id);
+CREATE INDEX IF NOT EXISTS idx_items_status ON items(status);
+
+CREATE TABLE IF NOT EXISTS item_locations (
+  id TEXT PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  location_id TEXT NOT NULL REFERENCES locations(id) ON DELETE RESTRICT,
+  started_at TEXT NOT NULL DEFAULT (current_timestamp),
+  ended_at TEXT,
+  is_current INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_item_locations_item_id ON item_locations(item_id);
+CREATE INDEX IF NOT EXISTS idx_item_locations_location_id ON item_locations(location_id);
+CREATE INDEX IF NOT EXISTS idx_item_locations_is_current ON item_locations(is_current);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_item_locations_one_current
+  ON item_locations(item_id) WHERE is_current = 1;
+
+CREATE TABLE IF NOT EXISTS tags (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT (current_timestamp)
+);
+
+CREATE TABLE IF NOT EXISTS item_tags (
+  item_id TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (item_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS idx_item_tags_item_id ON item_tags(item_id);
+CREATE INDEX IF NOT EXISTS idx_item_tags_tag_id ON item_tags(tag_id);
+
+CREATE TABLE IF NOT EXISTS reminders (
+  id TEXT PRIMARY KEY,
+  item_id TEXT REFERENCES items(id) ON DELETE CASCADE,
+  location_id TEXT REFERENCES locations(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  remind_at TEXT NOT NULL,
+  repeat_type TEXT NOT NULL DEFAULT 'NONE',
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  notification_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (current_timestamp),
+  updated_at TEXT NOT NULL DEFAULT (current_timestamp)
+);
+CREATE INDEX IF NOT EXISTS idx_reminders_remind_at ON reminders(remind_at);
+CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
   item_id UNINDEXED,
   name,
@@ -27,70 +96,29 @@ CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
   content=''
 );
 
--- Keep items_fts in sync on item insert
 CREATE TRIGGER IF NOT EXISTS items_ai AFTER INSERT ON items BEGIN
   INSERT INTO items_fts(item_id, name, description, notes, category_name, location_path, tags)
-  VALUES (
-    new.id,
-    new.name,
-    coalesce(new.description, ''),
-    coalesce(new.notes, ''),
-    (SELECT name FROM categories WHERE id = new.category_id),
-    '',
-    ''
-  );
+  VALUES (new.id, new.name, coalesce(new.description, ''), coalesce(new.notes, ''),
+    (SELECT name FROM categories WHERE id = new.category_id), '', '');
 END;
 
--- Keep items_fts in sync on item update
 CREATE TRIGGER IF NOT EXISTS items_au AFTER UPDATE ON items BEGIN
   DELETE FROM items_fts WHERE item_id = old.id;
   INSERT INTO items_fts(item_id, name, description, notes, category_name, location_path, tags)
-  VALUES (
-    new.id,
-    new.name,
-    coalesce(new.description, ''),
-    coalesce(new.notes, ''),
-    (SELECT name FROM categories WHERE id = new.category_id),
-    '',
-    ''
-  );
+  VALUES (new.id, new.name, coalesce(new.description, ''), coalesce(new.notes, ''),
+    (SELECT name FROM categories WHERE id = new.category_id), '', '');
 END;
 
--- Keep items_fts in sync on item delete
 CREATE TRIGGER IF NOT EXISTS items_ad AFTER DELETE ON items BEGIN
   DELETE FROM items_fts WHERE item_id = old.id;
 END;
 
--- ------------------------------------------------------------
--- Data integrity guards (spec section 2.11) enforced at the DB layer,
--- not just in the UI — a bug in a screen should not corrupt data.
--- ------------------------------------------------------------
-
--- Rule 3: No self-parent
 CREATE TRIGGER IF NOT EXISTS trg_locations_no_self_parent
-BEFORE INSERT ON locations
-WHEN new.parent_id = new.id
-BEGIN
+BEFORE INSERT ON locations WHEN new.parent_id = new.id BEGIN
   SELECT RAISE(ABORT, 'A location cannot be its own parent');
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_locations_no_self_parent_update
-BEFORE UPDATE OF parent_id ON locations
-WHEN new.parent_id = new.id
-BEGIN
+BEFORE UPDATE OF parent_id ON locations WHEN new.parent_id = new.id BEGIN
   SELECT RAISE(ABORT, 'A location cannot be its own parent');
 END;
-
--- Rule 2: No circular locations — checked in application code
--- (location.service.ts) via ancestor-walk before UPDATE, because SQLite
--- triggers can't easily walk a recursive chain of *pending* changes.
--- This is intentional: the trigger above catches the trivial case for
--- free, the service layer catches the deep case with a clear error
--- message the UI can show the user.
-
--- Rule 4: Only one current location per item — enforced via a partial
--- unique index rather than a trigger, so it's checked by SQLite itself
--- on every INSERT/UPDATE, not just ones the trigger authors thought of.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_item_locations_one_current
-ON item_locations(item_id)
-WHERE is_current = 1;

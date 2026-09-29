@@ -18,6 +18,8 @@ export interface Item {
 /** What the UI actually needs to render an item row — current location
  * path is joined in, not a separate query per row. */
 export interface ItemWithLocation extends Item {
+  currentLocationId?: string | null;
+  tagIds?: string[];
   currentLocationPath: string | null;
   categoryName: string | null;
 }
@@ -53,4 +55,14 @@ export interface FindAllItemsOptions {
   categoryId?: string;
   tagId?: string;
   status?: ItemStatus;
+}
+
+export interface LocationHistoryEntry {
+  id: string;
+  locationName: string | null;
+  locationPath: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  isCurrent: boolean;
+  locationId: string;
 }

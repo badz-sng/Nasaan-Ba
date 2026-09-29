@@ -28,7 +28,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Photo access is needed to add an image to an item."
+          "photosPermission": "Photo access is needed to add an image to an item.",
+          "cameraPermission": "Camera access is needed to take an item photo.",
+          "microphonePermission": false
         }
       ]
     ],

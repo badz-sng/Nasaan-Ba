@@ -9,6 +9,7 @@ import type {
   ItemWithLocation,
   UpdateItemInput,
 } from './item.types';
+import type { LocationHistoryEntry } from './item.types';
 
 export class ItemRepository {
   async create(input: CreateItemInput): Promise<Item> {
@@ -19,8 +20,8 @@ export class ItemRepository {
     // Transaction: item creation + initial location assignment must
     // succeed or fail together. Half-created items (item row exists but
     // no item_locations row) would violate Rule 1 from the spec.
-    return db.transaction(async (tx) => {
-      const [created] = await tx
+    return db.transaction((tx) => {
+      const [created] = tx
         .insert(items)
         .values({
           id: itemId,
@@ -36,19 +37,19 @@ export class ItemRepository {
           createdAt: now,
           updatedAt: now,
         })
-        .returning();
+        .returning().all();
 
-      await tx.insert(itemLocations).values({
+      tx.insert(itemLocations).values({
         id: randomUUID(),
         itemId,
         locationId: input.locationId,
         startedAt: now,
         endedAt: null,
         isCurrent: true,
-      });
+      }).run();
 
       if (input.tagIds?.length) {
-        await tx.insert(itemTags).values(input.tagIds.map((tagId) => ({ itemId, tagId })));
+        tx.insert(itemTags).values(input.tagIds.map((tagId) => ({ itemId, tagId }))).run();
       }
 
       return created as Item;
@@ -67,22 +68,27 @@ export class ItemRepository {
     const db = getDb();
     const now = new Date().toISOString();
 
-    await db.transaction(async (tx) => {
-      await tx
+    db.transaction((tx) => {
+      const item = tx.select().from(items).where(eq(items.id, itemId)).get();
+      if (!item) throw new Error('Item not found');
+      const current = tx.select().from(itemLocations)
+        .where(and(eq(itemLocations.itemId, itemId), eq(itemLocations.isCurrent, true))).get();
+      if (current?.locationId === newLocationId) return;
+      tx
         .update(itemLocations)
         .set({ endedAt: now, isCurrent: false })
-        .where(and(eq(itemLocations.itemId, itemId), eq(itemLocations.isCurrent, true)));
+        .where(and(eq(itemLocations.itemId, itemId), eq(itemLocations.isCurrent, true))).run();
 
-      await tx.insert(itemLocations).values({
+      tx.insert(itemLocations).values({
         id: randomUUID(),
         itemId,
         locationId: newLocationId,
         startedAt: now,
         endedAt: null,
         isCurrent: true,
-      });
+      }).run();
 
-      await tx.update(items).set({ updatedAt: now }).where(eq(items.id, itemId));
+      tx.update(items).set({ updatedAt: now }).where(eq(items.id, itemId)).run();
     });
   }
 
@@ -91,6 +97,7 @@ export class ItemRepository {
     const rows = await db
       .select({
         item: items,
+        locationId: itemLocations.locationId,
         locationPath: locations.path,
         categoryName: categories.name,
       })
@@ -106,7 +113,8 @@ export class ItemRepository {
 
     if (rows.length === 0) return null;
     const row = rows[0];
-    return { ...row.item, currentLocationPath: row.locationPath, categoryName: row.categoryName } as ItemWithLocation;
+    const assignedTags = await db.select({ tagId: itemTags.tagId }).from(itemTags).where(eq(itemTags.itemId, id));
+    return { ...row.item, currentLocationId: row.locationId, tagIds: assignedTags.map((t) => t.tagId), currentLocationPath: row.locationPath, categoryName: row.categoryName } as ItemWithLocation;
   }
 
   async findAll(options: FindAllItemsOptions = {}): Promise<ItemWithLocation[]> {
@@ -159,8 +167,8 @@ export class ItemRepository {
     const db = getDb();
     const now = new Date().toISOString();
 
-    return db.transaction(async (tx) => {
-      const [updated] = await tx
+    return db.transaction((tx) => {
+      const [updated] = tx
         .update(items)
         .set({
           ...(input.name !== undefined && { name: input.name }),
@@ -174,12 +182,13 @@ export class ItemRepository {
           updatedAt: now,
         })
         .where(eq(items.id, id))
-        .returning();
+        .returning().all();
+      if (!updated) throw new Error('Item not found');
 
       if (input.tagIds !== undefined) {
-        await tx.delete(itemTags).where(eq(itemTags.itemId, id));
+        tx.delete(itemTags).where(eq(itemTags.itemId, id)).run();
         if (input.tagIds.length > 0) {
-          await tx.insert(itemTags).values(input.tagIds.map((tagId) => ({ itemId: id, tagId })));
+          tx.insert(itemTags).values(input.tagIds.map((tagId) => ({ itemId: id, tagId }))).run();
         }
       }
 
@@ -222,10 +231,11 @@ export class ItemRepository {
     return rows.map((r) => ({ ...r.item, currentLocationPath: r.locationPath, categoryName: r.categoryName } as ItemWithLocation));
   }
 
-  async getLocationHistory(itemId: string) {
+  async getLocationHistory(itemId: string): Promise<LocationHistoryEntry[]> {
     const db = getDb();
     return db
       .select({
+        id: itemLocations.id,
         locationId: itemLocations.locationId,
         locationName: locations.name,
         locationPath: locations.path,
