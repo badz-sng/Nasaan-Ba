@@ -66,22 +66,30 @@ export function useCreateItem() {
 }
 
 interface UseItemsOptions {
+  query?: string;
+  sort?: 'nameAsc' | 'nameDesc' | 'recent';
   pageSize?: number;
   categoryId?: string;
   tagId?: string;
 }
 
 export function useItems(options: UseItemsOptions = {}) {
-  const { pageSize = 20, categoryId, tagId } = options;
+  const { pageSize = 20, categoryId, tagId, query, sort } = options;
   const [items, setItems] = useState<ItemWithLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
+  const generation = useRef(0);
+  const pendingPage = useRef(false);
 
   const fetchPage = useCallback(
     async (pageOffset: number, append: boolean) => {
+      if (append && pendingPage.current) return;
+      const request = append ? generation.current : ++generation.current;
+      pendingPage.current = true;
+      if (!append) setItems([]);
       if (append) setIsLoadingMore(true);
       else setIsLoading(true);
       setError(null);
@@ -91,21 +99,26 @@ export function useItems(options: UseItemsOptions = {}) {
           offset: pageOffset,
           limit: pageSize,
           categoryId,
-          tagId,
+          tagId, query, sort,
         });
+        if (request !== generation.current) return;
         setHasMore(result.length === pageSize);
         setItems((prev) => (append ? [...prev, ...result] : result));
         setOffset(pageOffset + result.length);
       } catch (err) {
+        if (request !== generation.current) return;
         setError(
           err instanceof ItemServiceError ? err.message : 'Could not load items. Please try again.'
         );
       } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        if (request === generation.current) {
+          pendingPage.current = false;
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     },
-    [pageSize, categoryId, tagId]
+    [pageSize, categoryId, tagId, query, sort]
   );
 
   const refresh = useCallback(async () => {
@@ -114,13 +127,14 @@ export function useItems(options: UseItemsOptions = {}) {
   }, [fetchPage]);
 
   const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
+    if (isLoading || isLoadingMore || !hasMore) return;
     await fetchPage(offset, true);
-  }, [fetchPage, offset, isLoadingMore, hasMore]);
+  }, [fetchPage, offset, isLoading, isLoadingMore, hasMore]);
 
   useFocusEffect(
     useCallback(() => {
-      refresh();
+      void refresh();
+      return () => { generation.current++; pendingPage.current = false; };
     }, [refresh])
 );
   return { items, isLoading, isLoadingMore, error, hasMore, refresh, loadMore };

@@ -217,3 +217,20 @@ test('dashboard counts include all active records, not just the recent page', ()
     assert.deepEqual({ ...getDashboardSummary() }, { items: 23, locations: 2, categories: 1, reminders: 0 });
   } finally { sqlite.close(); }
 });
+
+test('item browsing searches and sorts before pagination and returns real tag chips', async () => {
+  const { sqlite, overrides } = fixture();
+  try {
+    const { itemRepository: repo } = loadTs('src/features/items/item.repository.ts', overrides);
+    sqlite.exec("INSERT INTO locations(id,name,path) VALUES('home','Home','Home'); INSERT INTO categories(id,name) VALUES('electronics','Electronics'),('other','Other'); INSERT INTO tags(id,name) VALUES('charger','Charger');");
+    const insert = sqlite.prepare('INSERT INTO items(id,name,category_id,status) VALUES(?,?,?,?)');
+    insert.run('a','Alpha','other','active'); insert.run('b','beta charger','electronics','active'); insert.run('c','Zeta Charger','electronics','active'); insert.run('d','Archived Charger','electronics','archived'); insert.run('e','100% cable','other','active');
+    sqlite.exec("INSERT INTO item_tags(item_id,tag_id) VALUES('b','charger'),('c','charger');");
+    const page = await repo.findAll({ query: ' CHARGER ', categoryId: 'electronics', tagId: 'charger', sort: 'nameAsc', limit: 1 });
+    assert.equal(page[0].id, 'b'); assert.deepEqual(page[0].tags, [{ id: 'charger', name: 'Charger' }]);
+    assert.equal((await repo.findAll({ query: 'charger', sort: 'nameAsc', limit: 1, offset: 1 }))[0].id, 'c');
+    assert.equal((await repo.findAll({ query: 'charger', sort: 'nameDesc', limit: 1 }))[0].id, 'c');
+    assert.equal((await repo.findAll({ query: '%' }))[0].id, 'e');
+    assert.equal((await repo.findAll({ tagId: 'missing' })).length, 0);
+  } finally { sqlite.close(); }
+});

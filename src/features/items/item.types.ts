@@ -20,6 +20,7 @@ export interface Item {
 export interface ItemWithLocation extends Item {
   currentLocationId?: string | null;
   tagIds?: string[];
+  tags?: { id: string; name: string }[];
   currentLocationPath: string | null;
   categoryName: string | null;
 }
@@ -50,6 +51,8 @@ export interface UpdateItemInput {
 }
 
 export interface FindAllItemsOptions {
+  query?: string;
+  sort?: 'nameAsc' | 'nameDesc' | 'recent';
   offset?: number;
   limit?: number;
   categoryId?: string;

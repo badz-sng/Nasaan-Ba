@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { getDb } from '@/database/client';
-import { items, itemLocations, itemTags, locations, categories } from '@/database/schema';
+import { items, itemLocations, itemTags, locations, categories, tags } from '@/database/schema';
 import type {
   CreateItemInput,
   FindAllItemsOptions,
@@ -119,10 +119,11 @@ export class ItemRepository {
 
   async findAll(options: FindAllItemsOptions = {}): Promise<ItemWithLocation[]> {
     const db = getDb();
-    const { offset = 0, limit = 20, categoryId, tagId, status = 'active' } = options;
+    const { offset = 0, limit = 20, categoryId, tagId, status = 'active', query = '', sort = 'recent' } = options;
 
     const conditions = [eq(items.status, status)];
     if (categoryId) conditions.push(eq(items.categoryId, categoryId));
+    if (query.trim()) conditions.push(sql`instr(lower(${items.name}), lower(${query.trim()})) > 0`);
 
     let itemIdsFromTag: string[] | null = null;
     if (tagId) {
@@ -149,16 +150,25 @@ export class ItemRepository {
       .leftJoin(locations, eq(locations.id, itemLocations.locationId))
       .leftJoin(categories, eq(categories.id, items.categoryId))
       .where(and(...conditions))
-      .orderBy(sql`${items.updatedAt} DESC`)
+      .orderBy(sort === 'nameAsc' ? sql`${items.name} COLLATE NOCASE ASC` : sort === 'nameDesc' ? sql`${items.name} COLLATE NOCASE DESC` : sql`${items.createdAt} DESC`, items.id)
       .limit(limit)
       .offset(offset);
 
+    const assignedTags = rows.length ? await db.select({ itemId: itemTags.itemId, id: tags.id, name: tags.name }).from(itemTags)
+      .innerJoin(tags, eq(tags.id, itemTags.tagId)).where(inArray(itemTags.itemId, rows.map(r => r.item.id))).orderBy(tags.name) : [];
+    const tagsByItem = new Map<string, { id: string; name: string }[]>();
+    for (const tag of assignedTags) {
+      const group = tagsByItem.get(tag.itemId) ?? [];
+      group.push({ id: tag.id, name: tag.name });
+      tagsByItem.set(tag.itemId, group);
+    }
     return rows.map(
       (r) =>
         ({
           ...r.item,
           currentLocationPath: r.locationPath,
           categoryName: r.categoryName,
+          tags: tagsByItem.get(r.item.id) ?? [],
         }) as ItemWithLocation
     );
   }
