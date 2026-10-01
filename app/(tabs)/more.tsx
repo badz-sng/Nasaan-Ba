@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { ActionButton } from '@/components/ActionButton';
+import { Text, StyleSheet, ScrollView } from 'react-native';
 import { Link } from 'expo-router';
 
 const MORE_LINKS = [
@@ -16,8 +17,8 @@ export default function MoreScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>More</Text>
       {MORE_LINKS.map((link) => (
-        <Link key={link.href} href={link.href} style={styles.link}>
-          {link.label}
+        <Link key={link.href} href={link.href} asChild>
+          <ActionButton variant="secondary" style={{ marginBottom: 10 }}>{link.label}  ›</ActionButton>
         </Link>
       ))}
     </ScrollView>
@@ -27,11 +28,4 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, paddingTop: 60 },
   title: { fontSize: 20, fontWeight: '700', marginBottom: 24 },
-  link: {
-    color: '#2563eb',
-    fontSize: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
 });

@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
@@ -96,24 +97,24 @@ function DatabaseErrorScreen({ message, onRetry }: { message: string; onRetry: (
 
       {!confirmingReset ? (
         <View style={styles.buttonRow}>
-          <Pressable style={styles.buttonSecondary} onPress={onRetry}>
-            <Text style={styles.buttonSecondaryText}>Try Again</Text>
-          </Pressable>
-          <Pressable style={styles.buttonDanger} onPress={() => setConfirmingReset(true)}>
-            <Text style={styles.buttonDangerText}>Reset Database</Text>
-          </Pressable>
+          <ActionButton variant="secondary" style={styles.buttonSecondary} onPress={onRetry}>
+            <Text >Try Again</Text>
+          </ActionButton>
+          <ActionButton variant="danger" style={styles.buttonDanger} onPress={() => setConfirmingReset(true)}>
+            <Text >Reset Database</Text>
+          </ActionButton>
         </View>
       ) : (
         <View style={styles.buttonRow}>
           <Text style={styles.warningText}>
             All app data will be deleted. Are you sure?
           </Text>
-          <Pressable style={styles.buttonSecondary} onPress={() => setConfirmingReset(false)}>
-            <Text style={styles.buttonSecondaryText}>Cancel</Text>
-          </Pressable>
-          <Pressable style={styles.buttonDanger} onPress={handleReset}>
-            <Text style={styles.buttonDangerText}>Yes, Reset</Text>
-          </Pressable>
+          <ActionButton variant="secondary" style={styles.buttonSecondary} onPress={() => setConfirmingReset(false)}>
+            <Text >Cancel</Text>
+          </ActionButton>
+          <ActionButton variant="danger" style={styles.buttonDanger} onPress={handleReset}>
+            <Text >Yes, Reset</Text>
+          </ActionButton>
         </View>
       )}
     </View>
@@ -127,8 +128,8 @@ const styles = StyleSheet.create({
   errorMessage: { color: '#666', textAlign: 'center' },
   warningText: { color: '#b91c1c', textAlign: 'center', marginBottom: 8 },
   buttonRow: { gap: 8, marginTop: 16, width: '100%' },
-  buttonSecondary: { padding: 12, borderRadius: 8, backgroundColor: '#eee', alignItems: 'center' },
+  buttonSecondary: {  },
   buttonSecondaryText: { color: '#333', fontWeight: '500' },
-  buttonDanger: { padding: 12, borderRadius: 8, backgroundColor: '#dc2626', alignItems: 'center' },
+  buttonDanger: {  },
   buttonDangerText: { color: '#fff', fontWeight: '500' },
 });

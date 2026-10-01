@@ -1,4 +1,5 @@
-﻿import { useCallback, useState } from 'react';
+import { ActionButton } from '@/components/ActionButton';
+import { useCallback, useState } from 'react';
 import { ScrollView, Text, Pressable, Alert, Linking, ActivityIndicator } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import * as Notifications from '@/services/localNotifications';
@@ -24,13 +25,13 @@ export default function SettingsScreen() {
   };
   return (
     <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 60, gap: 24 }}>
-      <Link href="/(tabs)/more">Back</Link>
+      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
       <Text style={{ fontSize: 24, fontWeight: '700' }}>Settings</Text>
       <Text>Notifications: {permission}</Text>
-      <Pressable accessibilityRole="button" disabled={busy} onPress={schedule}><Text>Enable / Retry Reminder Notifications</Text></Pressable>
+      <ActionButton variant="primary" accessibilityRole="button" disabled={busy} onPress={schedule}><Text>Enable / Retry Reminder Notifications</Text></ActionButton>
       {busy && <ActivityIndicator />}
-      <Link href="/more/app-lock">App Lock</Link>
-      <Link href="/more/backup">Backup & Restore</Link>
+      <Link href="/more/app-lock" asChild><ActionButton variant="secondary">App Lock  ›</ActionButton></Link>
+      <Link href="/more/backup" asChild><ActionButton variant="secondary">Backup & Restore  ›</ActionButton></Link>
       <Text>Your inventory and photos are stored on this device. Export a backup before switching devices.</Text>
     </ScrollView>
   );

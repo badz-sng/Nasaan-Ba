@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import { useState } from 'react';
 import {
   View,
@@ -73,7 +74,7 @@ export default function TagsScreen() {
 
   return (
     <View style={styles.container}>
-      <Link href="/(tabs)/more">Back</Link>
+      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
       <Text style={styles.title}>Tags</Text>
 
       {isLoading && <ActivityIndicator style={styles.loader} />}
@@ -105,24 +106,24 @@ export default function TagsScreen() {
                   />
                   {fieldErrors?.name ? <Text style={styles.fieldError}>{fieldErrors.name}</Text> : null}
                   <View style={styles.formActions}>
-                    <Pressable style={styles.cancelButton} onPress={resetForm}>
+                    <ActionButton variant="secondary" style={styles.cancelButton} onPress={resetForm}>
                       <Text>Cancel</Text>
-                    </Pressable>
-                    <Pressable
+                    </ActionButton>
+                    <ActionButton variant="primary"
                       style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
                       onPress={handleAdd}
                       disabled={isSubmitting || renaming}
                     >
-                      <Text style={styles.saveButtonText}>
+                      <Text >
                         {isSubmitting || renaming ? 'Saving...' : 'Save'}
                       </Text>
-                    </Pressable>
+                    </ActionButton>
                   </View>
                 </View>
               ) : (
-                <Pressable style={styles.addButton} onPress={() => setShowAddForm(true)}>
-                  <Text style={styles.addButtonText}>+ Add Tag</Text>
-                </Pressable>
+                <ActionButton variant="primary" style={styles.addButton} onPress={() => setShowAddForm(true)}>
+                  <Text >+ Add Tag</Text>
+                </ActionButton>
               )}
             </View>
           }
@@ -135,13 +136,13 @@ export default function TagsScreen() {
                 </Text>
               </Pressable>
 
-              <Pressable
+              <ActionButton variant="danger"
                 style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
                 onPress={() => handleDelete(item.id, item.name, item.itemCount)}
                 disabled={isDeleting}
               >
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </Pressable>
+                <Text >Delete</Text>
+              </ActionButton>
             </View>
           )}
           ListEmptyComponent={
@@ -161,15 +162,10 @@ const styles = StyleSheet.create({
   loader: { marginTop: 24 },
   errorBox: { alignItems: 'center', marginTop: 24, gap: 8 },
   errorText: { color: '#b91c1c', textAlign: 'center' },
-  retryText: { color: '#2563eb', fontWeight: '600' },
+  retryText: { color: '#007F76', fontWeight: '600' },
   listContent: { paddingBottom: 24 },
   headerBlock: { marginBottom: 12 },
-  addButton: {
-    backgroundColor: '#111',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
+  addButton: {  },
   addButtonText: { color: '#fff', fontWeight: '600' },
   form: {
     backgroundColor: '#f9f9f9',
@@ -188,20 +184,8 @@ const styles = StyleSheet.create({
   },
   fieldError: { color: '#b91c1c', marginTop: 6 },
   formActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  cancelButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-    alignItems: 'center',
-  },
-  saveButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#111',
-    alignItems: 'center',
-  },
+  cancelButton: { flex: 1 },
+  saveButton: { flex: 1 },
   saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: '#fff', fontWeight: '600' },
   row: {
@@ -218,12 +202,7 @@ const styles = StyleSheet.create({
   rowBody: { flex: 1 },
   rowName: { fontSize: 16, fontWeight: '700', color: '#111' },
   rowCount: { marginTop: 6, color: '#666' },
-  deleteButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#fef2f2',
-  },
+  deleteButton: {  },
   deleteButtonDisabled: { opacity: 0.5 },
   deleteButtonText: { color: '#b91c1c', fontWeight: '700' },
   emptyState: {

@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import { View, Text, FlatList, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import { useRecentItems } from '@/hooks/useItems';
@@ -52,16 +53,16 @@ export default function HomeScreen() {
       )}
 
       <Link href="/item/add" asChild>
-        <Pressable style={styles.addButton}>
-          <Text style={styles.addButtonText}>+ Add Item</Text>
-        </Pressable>
+        <ActionButton variant="primary" style={styles.addButton}>
+          <Text >+ Add Item</Text>
+        </ActionButton>
       </Link>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, paddingTop: 60 },
+  container: { flex: 1, padding: 16, paddingTop: 60, paddingBottom: 88 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 16 },
   searchBar: { backgroundColor: '#f2f2f2', borderRadius: 10, padding: 14, marginBottom: 20 },
   searchPlaceholder: { color: '#888' },
@@ -72,15 +73,7 @@ const styles = StyleSheet.create({
   emptyText: { color: '#888', marginTop: 24, textAlign: 'center' },
   errorBox: { marginTop: 24, alignItems: 'center', gap: 8 },
   errorText: { color: '#b91c1c', textAlign: 'center' },
-  retryText: { color: '#2563eb', fontWeight: '600' },
-  addButton: {
-    position: 'absolute',
-    bottom: 24,
-    alignSelf: 'center',
-    backgroundColor: '#111',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 999,
-  },
+  retryText: { color: '#007F76', fontWeight: '600' },
+  addButton: { position: 'absolute', bottom: 24, alignSelf: 'center', left: 16, right: 16 },
   addButtonText: { color: '#fff', fontWeight: '600' },
 });

@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import { useEffect, useState } from 'react';
 import {
   View,
@@ -105,7 +106,7 @@ export default function ItemDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-      <Pressable accessibilityRole="button" onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/items')}><Text>Back</Text></Pressable>
+      <ActionButton variant="link" accessibilityRole="button" onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/items')}><Text>Back</Text></ActionButton>
       {!isEditing ? (
         <>
           <Text style={styles.name}>{item.name}</Text>
@@ -158,45 +159,45 @@ export default function ItemDetailScreen() {
               <Text style={styles.notes}>{item.notes}</Text>
             </>
           )}
-          <Pressable style={styles.actionButton} disabled={isMoving || isArchiving || isDeleting} onPress={() => setIsEditing(true)}>
-            <Text style={styles.actionButtonText}>Edit</Text>
-          </Pressable>
-          <Link href={{ pathname: '/more/reminders', params: { itemId: id } }} style={styles.notes}>Add Reminder</Link>
-          <Pressable
+          <ActionButton variant="primary" style={styles.actionButton} disabled={isMoving || isArchiving || isDeleting} onPress={() => setIsEditing(true)}>
+            <Text >Edit</Text>
+          </ActionButton>
+          <Link href={{ pathname: '/more/reminders', params: { itemId: id } }} asChild><ActionButton variant="secondary" style={{ marginTop: 16 }}>Add Reminder</ActionButton></Link>
+          <ActionButton variant="secondary"
             style={[styles.actionButton, styles.secondaryButton]}
             onPress={handleArchive}
             disabled={isArchiving || isMoving || isDeleting}
           >
-            <Text style={styles.secondaryButtonText}>
+            <Text >
               {isArchiving ? 'Archiving...' : 'Archive'}
             </Text>
-          </Pressable>
-          <Pressable
+          </ActionButton>
+          <ActionButton variant="danger"
             style={[styles.actionButton, styles.dangerButton]}
             onPress={handleDelete}
             disabled={isDeleting || isMoving || isArchiving}
           >
-            <Text style={styles.dangerButtonText}>
+            <Text >
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Text>
-          </Pressable>
+          </ActionButton>
         </>
       ) : (
         <>
           <ItemFields value={draft} onChange={setDraft} errors={fieldErrors} disabled={isSubmitting || photoBusy} onPhotoBusyChange={setPhotoBusy} />
 
-          <Pressable
+          <ActionButton variant="primary"
             style={[styles.actionButton, isSubmitting && styles.disabled]}
             onPress={handleSave}
             disabled={isSubmitting || photoBusy}
           >
-            <Text style={styles.actionButtonText}>
+            <Text >
               {isSubmitting ? 'Saving...' : 'Save'}
             </Text>
-          </Pressable>
-          <Pressable style={[styles.actionButton, styles.secondaryButton]} disabled={isSubmitting || photoBusy} onPress={() => { setIsEditing(false); void loadItem(); }}>
-            <Text style={styles.secondaryButtonText}>Cancel</Text>
-          </Pressable>
+          </ActionButton>
+          <ActionButton variant="secondary" style={[styles.actionButton, styles.secondaryButton]} disabled={isSubmitting || photoBusy} onPress={() => { setIsEditing(false); void loadItem(); }}>
+            <Text >Cancel</Text>
+          </ActionButton>
         </>
       )}
     </ScrollView>
@@ -213,11 +214,11 @@ const styles = StyleSheet.create({
   notes: { fontSize: 15, marginTop: 8, color: '#333' },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16, marginTop: 8 },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
-  actionButton: { backgroundColor: '#111', padding: 14, borderRadius: 8, marginTop: 16, alignItems: 'center' },
+  actionButton: { marginTop: 16 },
   actionButtonText: { color: '#fff', fontWeight: '600' },
-  secondaryButton: { backgroundColor: '#eee' },
+  secondaryButton: {  },
   secondaryButtonText: { color: '#333', fontWeight: '600' },
-  dangerButton: { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca' },
+  dangerButton: {  },
   dangerButtonText: { color: '#b91c1c', fontWeight: '600' },
   disabled: { opacity: 0.5 },
   error: { color: '#b91c1c', textAlign: 'center', marginTop: 60 },

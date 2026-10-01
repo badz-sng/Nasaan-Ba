@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import { useRef, useState } from 'react';
 import { View, Image, Text, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { pickPhoto } from '@/services/imageService';
@@ -18,10 +19,10 @@ export function PhotoPicker({ value, onChange, disabled, onBusyChange }: { value
       <Text>Photo (optional)</Text>
       {value && <Image accessibilityLabel="Item photo" source={{ uri: value }} style={{ width: '100%', height: 200 }} resizeMode="contain" />}
       {busy && <ActivityIndicator />}
-      <View style={{ flexDirection: 'row', gap: 20 }}>
-        <Pressable accessibilityRole="button" disabled={disabled || busy} onPress={() => choose(false)}><Text>Choose Photo</Text></Pressable>
-        <Pressable accessibilityRole="button" disabled={disabled || busy} onPress={() => choose(true)}><Text>Camera</Text></Pressable>
-        {value && <Pressable accessibilityRole="button" disabled={disabled || busy} onPress={() => onChange(null)}><Text>Remove</Text></Pressable>}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <ActionButton variant="secondary" accessibilityRole="button" disabled={disabled || busy} onPress={() => choose(false)}><Text>Choose Photo</Text></ActionButton>
+        <ActionButton variant="secondary" accessibilityRole="button" disabled={disabled || busy} onPress={() => choose(true)}><Text>Camera</Text></ActionButton>
+        {value && <ActionButton variant="danger" accessibilityRole="button" disabled={disabled || busy} onPress={() => onChange(null)}><Text>Remove</Text></ActionButton>}
       </View>
     </View>
   );

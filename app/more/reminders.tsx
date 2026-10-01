@@ -1,4 +1,5 @@
-﻿import { useCallback, useState } from 'react';
+import { ActionButton } from '@/components/ActionButton';
+import { useCallback, useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, Link } from 'expo-router';
 import { reminderService, localDateTime, parseLocalDateTime, type Reminder } from '@/features/reminders/reminder.service';
@@ -32,9 +33,9 @@ export default function RemindersScreen() {
   const reset = () => { setEditing(null); setTitle(''); setDescription(''); setRepeatType('NONE'); setTime(localDateTime(new Date(Date.now() + 3600000).toISOString())); setShowForm(false); };
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Link href="/(tabs)/more">Back</Link>
+      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
       <Text style={styles.title}>Reminders</Text>
-      <Pressable accessibilityRole="button" disabled={busy} onPress={() => { reset(); setShowForm(true); }}><Text>+ Add Reminder</Text></Pressable>
+      <ActionButton variant="primary" accessibilityRole="button" disabled={busy} onPress={() => { reset(); setShowForm(true); }}><Text>+ Add Reminder</Text></ActionButton>
       {showForm && <View style={styles.form}>
         <Text>{editing ? 'Edit reminder' : 'New reminder'}</Text>
         <TextInput accessibilityLabel="Reminder title" placeholder="Title" style={styles.input} value={title} onChangeText={setTitle} editable={!busy} />
@@ -47,12 +48,12 @@ export default function RemindersScreen() {
         {repeatType !== 'NONE' && <Text>Repeating reminders start at the next matching time. Monthly reminders on the 29th-31st skip months without that day.</Text>}
         {(editing?.itemId || params.itemId) && <Text>Linked to this item.</Text>}
         {(editing?.locationId || params.locationId) && <Text>Linked to this location.</Text>}
-        <Pressable accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => action(async () => {
+        <ActionButton variant="primary" accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => action(async () => {
           await reminderService.save({ title, description, remindAt: parseLocalDateTime(time), repeatType,
             itemId: editing ? editing.itemId : params.itemId ?? null, locationId: editing ? editing.locationId : params.locationId ?? null }, editing?.id);
           reset();
-        })}><Text style={{ color: 'white' }}>{busy ? 'Saving...' : 'Save Reminder'}</Text></Pressable>
-        <Pressable accessibilityRole="button" disabled={busy} onPress={reset}><Text>Cancel</Text></Pressable>
+        })}><Text >{busy ? 'Saving...' : 'Save Reminder'}</Text></ActionButton>
+        <ActionButton variant="secondary" accessibilityRole="button" disabled={busy} onPress={reset}><Text>Cancel</Text></ActionButton>
       </View>}
       {loading && <ActivityIndicator />}
       {error && <Pressable onPress={refresh}><Text style={{ color: '#b91c1c' }}>{error}</Text></Pressable>}
@@ -61,14 +62,14 @@ export default function RemindersScreen() {
         <Text style={{ fontWeight: '600' }}>{row.title}</Text>
         <Text>{new Date(row.remindAt).toLocaleString()} / {row.repeatType} / {row.status}</Text>
         {row.description && <Text>{row.description}</Text>}
-        {row.itemId && <Link href={{ pathname: '/item/[id]', params: { id: row.itemId } }}>View Item</Link>}
+        {row.itemId && <Link href={{ pathname: '/item/[id]', params: { id: row.itemId } }} asChild><ActionButton variant="link">View Item  ›</ActionButton></Link>}
         <View style={styles.row}>
-          <Pressable disabled={busy} onPress={() => { setEditing(row); setTitle(row.title); setDescription(row.description ?? ''); setTime(localDateTime(row.remindAt)); setRepeatType(row.repeatType); setShowForm(true); }}><Text>Edit</Text></Pressable>
+          <ActionButton variant="secondary" disabled={busy} onPress={() => { setEditing(row); setTitle(row.title); setDescription(row.description ?? ''); setTime(localDateTime(row.remindAt)); setRepeatType(row.repeatType); setShowForm(true); }}><Text>Edit</Text></ActionButton>
           {row.status === 'PENDING' && <>
-            <Pressable disabled={busy} onPress={() => action(() => reminderService.setStatus(row.id, 'COMPLETED'))}><Text>Complete</Text></Pressable>
-            <Pressable disabled={busy} onPress={() => action(() => reminderService.setStatus(row.id, 'CANCELLED'))}><Text>Cancel</Text></Pressable>
+            <ActionButton variant="primary" disabled={busy} onPress={() => action(() => reminderService.setStatus(row.id, 'COMPLETED'))}><Text>Complete</Text></ActionButton>
+            <ActionButton variant="secondary" disabled={busy} onPress={() => action(() => reminderService.setStatus(row.id, 'CANCELLED'))}><Text>Cancel</Text></ActionButton>
           </>}
-          <Pressable disabled={busy} onPress={() => Alert.alert('Delete reminder?', row.title, [{ text: 'Keep' }, { text: 'Delete', style: 'destructive', onPress: () => action(() => reminderService.delete(row.id)) }])}><Text style={{ color: '#b91c1c' }}>Delete</Text></Pressable>
+          <ActionButton variant="danger" disabled={busy} onPress={() => Alert.alert('Delete reminder?', row.title, [{ text: 'Keep' }, { text: 'Delete', style: 'destructive', onPress: () => action(() => reminderService.delete(row.id)) }])}><Text >Delete</Text></ActionButton>
         </View>
       </View>)}
     </ScrollView>
@@ -79,5 +80,5 @@ const styles = StyleSheet.create({
   form: { padding: 16, borderWidth: 1, borderColor: '#ddd', borderRadius: 12, gap: 12 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, chip: { padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8 },
-  selected: { backgroundColor: '#dbeafe' }, button: { backgroundColor: '#111', padding: 14, borderRadius: 8 },
+  selected: { backgroundColor: '#dbeafe' }, button: {  },
 });

@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import { useState } from 'react';
 import {
   View,
@@ -43,9 +44,7 @@ export function LocationPicker({ value, label, onChange, error, disabled }: Loca
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Choose a Location</Text>
-            <Pressable onPress={() => setVisible(false)}>
-              <Text style={styles.closeButton}>Close</Text>
-            </Pressable>
+            <ActionButton variant="link" onPress={() => setVisible(false)}>Close</ActionButton>
           </View>
 
           {isLoading && <ActivityIndicator style={styles.loader} />}
@@ -94,7 +93,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   modalTitle: { fontSize: 18, fontWeight: '700' },
-  closeButton: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
+  closeButton: { color: '#007F76', fontSize: 16, fontWeight: '600' },
   loader: { marginTop: 40 },
   errorBox: { alignItems: 'center', marginTop: 40, gap: 8 },
   retry: { color: '#2563eb', fontWeight: '600' },

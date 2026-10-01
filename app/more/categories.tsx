@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import { useState } from 'react';
 import {
   View,
@@ -107,7 +108,7 @@ export default function CategoriesScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Categories</Text>
-      <Link href="/(tabs)/more">Back</Link>
+      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
 
       {isLoading && <ActivityIndicator style={styles.loader} />}
 
@@ -146,15 +147,15 @@ export default function CategoriesScreen() {
                     placeholder="📦"
                   />
                   <View style={styles.formActions}>
-                    <Pressable style={styles.cancelButton} onPress={resetForm}>
+                    <ActionButton variant="secondary" style={styles.cancelButton} onPress={resetForm}>
                       <Text>Cancel</Text>
-                    </Pressable>
-                    <Pressable
+                    </ActionButton>
+                    <ActionButton variant="primary"
                       style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]}
                       onPress={handleSubmit}
                       disabled={isSubmitting}
                     >
-                      <Text style={styles.saveButtonText}>
+                      <Text >
                         {isSubmitting
                           ? editingCategory
                             ? 'Updating...'
@@ -163,13 +164,13 @@ export default function CategoriesScreen() {
                             ? 'Update'
                             : 'Save'}
                       </Text>
-                    </Pressable>
+                    </ActionButton>
                   </View>
                 </View>
               ) : (
-                <Pressable style={styles.addButton} onPress={openAddForm}>
-                  <Text style={styles.addButtonText}>+ Add Category</Text>
-                </Pressable>
+                <ActionButton variant="primary" style={styles.addButton} onPress={openAddForm}>
+                  <Text >+ Add Category</Text>
+                </ActionButton>
               )}
             </View>
           }
@@ -185,13 +186,13 @@ export default function CategoriesScreen() {
                 </Text>
               </Pressable>
 
-              <Pressable
+              <ActionButton variant="danger"
                 style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
                 onPress={() => handleDelete(item)}
                 disabled={isDeleting}
               >
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </Pressable>
+                <Text >Delete</Text>
+              </ActionButton>
             </View>
           )}
           ListEmptyComponent={
@@ -211,15 +212,10 @@ const styles = StyleSheet.create({
   loader: { marginTop: 24 },
   errorBox: { alignItems: 'center', marginTop: 24, gap: 8 },
   errorText: { color: '#b91c1c', textAlign: 'center' },
-  retryText: { color: '#2563eb', fontWeight: '600' },
+  retryText: { color: '#007F76', fontWeight: '600' },
   listContent: { paddingBottom: 24 },
   headerBlock: { marginBottom: 12 },
-  addButton: {
-    backgroundColor: '#111',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
+  addButton: {  },
   addButtonText: { color: '#fff', fontWeight: '600' },
   form: {
     backgroundColor: '#f9f9f9',
@@ -237,20 +233,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   formActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  cancelButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-    alignItems: 'center',
-  },
-  saveButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#111',
-    alignItems: 'center',
-  },
+  cancelButton: { flex: 1 },
+  saveButton: { flex: 1 },
   saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: '#fff', fontWeight: '600' },
   row: {
@@ -274,13 +258,7 @@ const styles = StyleSheet.create({
   rowName: { fontSize: 16, fontWeight: '700', color: '#111' },
   rowIcon: { fontSize: 16 },
   rowCount: { marginTop: 6, color: '#666' },
-  deleteButton: {
-    alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#fef2f2',
-  },
+  deleteButton: { alignSelf: 'center' },
   deleteButtonDisabled: { opacity: 0.5 },
   deleteButtonText: { color: '#b91c1c', fontWeight: '700' },
   emptyState: {

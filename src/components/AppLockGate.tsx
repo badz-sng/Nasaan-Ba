@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { authenticate, useAppLock } from '@/services/appLockService';
@@ -30,12 +31,12 @@ export function AppLockGate({ children }: { children: ReactNode }) {
       {hidden && <View style={styles.cover}>
         <Text style={{ fontSize: 24, fontWeight: '700' }}>Nasaan ba? is locked</Text>
         {!!error && <Text style={{ color: '#b91c1c', textAlign: 'center' }}>{error}</Text>}
-        {busy ? <ActivityIndicator /> : <Pressable accessibilityRole="button" style={styles.button} onPress={unlock}><Text style={{ color: 'white' }}>Unlock</Text></Pressable>}
+        {busy ? <ActivityIndicator /> : <ActionButton variant="primary" accessibilityRole="button" style={styles.button} onPress={unlock}><Text >Unlock</Text></ActionButton>}
       </View>}
     </View>
   );
 }
 const styles = StyleSheet.create({
   cover: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center', padding: 24, gap: 20 },
-  button: { backgroundColor: '#111', padding: 16, borderRadius: 8 },
+  button: {  },
 });

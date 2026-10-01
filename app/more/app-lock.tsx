@@ -1,4 +1,5 @@
-﻿import { useState } from 'react';
+import { ActionButton } from '@/components/ActionButton';
+import { useState } from 'react';
 import { View, Text, Switch, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import { setAppLock, useAppLock } from '@/services/appLockService';
@@ -14,7 +15,7 @@ export default function AppLockScreen() {
   };
   return (
     <View style={styles.container}>
-      <Link href="/(tabs)/more">Back</Link>
+      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
       <Text style={styles.title}>App Lock</Text>
       <Text>Require fingerprint, face authentication, or your device passcode when opening or returning to the app.</Text>
       <View style={styles.row}>

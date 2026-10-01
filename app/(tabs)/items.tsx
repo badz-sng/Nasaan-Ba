@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import {
   View,
   Text,
@@ -62,35 +63,27 @@ export default function ItemsScreen() {
       )}
 
       <Link href="/item/add" asChild>
-        <Pressable style={styles.addButton}>
-          <Text style={styles.addButtonText}>+ Add Item</Text>
-        </Pressable>
+        <ActionButton variant="primary" style={styles.addButton}>
+          <Text >+ Add Item</Text>
+        </ActionButton>
       </Link>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, paddingTop: 60 },
+  container: { flex: 1, padding: 16, paddingTop: 60, paddingBottom: 88 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 16 },
   loader: { marginTop: 24 },
   footerLoader: { marginVertical: 16 },
   errorBox: { alignItems: 'center', marginTop: 24, gap: 8 },
   errorText: { color: '#b91c1c', textAlign: 'center' },
-  retryText: { color: '#2563eb', fontWeight: '600' },
+  retryText: { color: '#007F76', fontWeight: '600' },
   emptyText: { color: '#888', textAlign: 'center', marginTop: 40 },
   itemRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   itemName: { fontSize: 16, fontWeight: '500' },
   category: { fontSize: 12, color: '#888', marginTop: 2 },
   itemLocation: { color: '#888', marginTop: 2 },
-  addButton: {
-    position: 'absolute',
-    bottom: 24,
-    alignSelf: 'center',
-    backgroundColor: '#111',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 999,
-  },
+  addButton: { position: 'absolute', bottom: 24, alignSelf: 'center', left: 16, right: 16 },
   addButtonText: { color: '#fff', fontWeight: '600' },
 });

@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/ActionButton';
 import {
   View,
   Text,
@@ -127,7 +128,7 @@ export default function LocationsScreen() {
       {showAddForm && (
         <View style={styles.addForm}>
           <Text>{editing ? `Edit ${editing.name}` : 'New location'}</Text>
-          {editing && <Link href={{ pathname: '/more/reminders', params: { locationId: editing.id } }}>Add Reminder for This Location</Link>}
+          {editing && <Link href={{ pathname: '/more/reminders', params: { locationId: editing.id } }} asChild><ActionButton variant="secondary">Add Reminder for This Location</ActionButton></Link>}
           <Text style={styles.formLabel}>Name</Text>
           <TextInput
             style={styles.input}
@@ -152,24 +153,24 @@ export default function LocationsScreen() {
             <LocationTree nodes={tree} onSelect={handleSelectParent} selectedId={parentId} />
           </ScrollView>
           <View style={styles.formActions}>
-            <Pressable style={styles.cancelButton} onPress={() => { setShowAddForm(false); setEditing(null); setNewName(''); setParentId(null); setParentLabel(null); }}>
+            <ActionButton variant="secondary" style={styles.cancelButton} onPress={() => { setShowAddForm(false); setEditing(null); setNewName(''); setParentId(null); setParentLabel(null); }}>
               <Text>Cancel</Text>
-            </Pressable>
-            <Pressable
+            </ActionButton>
+            <ActionButton variant="primary"
               style={[styles.saveButton, (isSubmitting || isUpdating) && styles.saveButtonDisabled]}
               onPress={handleAdd}
               disabled={isSubmitting || isUpdating}
             >
-              <Text style={styles.saveButtonText}>{isSubmitting || isUpdating ? 'Saving...' : 'Save'}</Text>
-            </Pressable>
+              <Text >{isSubmitting || isUpdating ? 'Saving...' : 'Save'}</Text>
+            </ActionButton>
           </View>
         </View>
       )}
 
       {!showAddForm && (
-        <Pressable style={styles.addButton} onPress={() => setShowAddForm(true)}>
-          <Text style={styles.addButtonText}>+ Add Location</Text>
-        </Pressable>
+        <ActionButton variant="primary" style={styles.addButton} onPress={() => setShowAddForm(true)}>
+          <Text >+ Add Location</Text>
+        </ActionButton>
       )}
     </View>
   );
@@ -181,15 +182,9 @@ const styles = StyleSheet.create({
   loader: { marginTop: 24 },
   errorBox: { alignItems: 'center', marginTop: 24, gap: 8 },
   errorText: { color: '#b91c1c', textAlign: 'center' },
-  retryText: { color: '#2563eb', fontWeight: '600' },
+  retryText: { color: '#007F76', fontWeight: '600' },
   treeContainer: { flex: 1 },
-  addButton: {
-    backgroundColor: '#111',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 12,
-  },
+  addButton: { marginTop: 12 },
   addButtonText: { color: '#fff', fontWeight: '600' },
   addForm: {
     backgroundColor: '#f9f9f9',
@@ -212,20 +207,8 @@ const styles = StyleSheet.create({
   parentPicker: { maxHeight: 160, backgroundColor: '#fff', borderRadius: 8 },
   parentOption: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   formActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  cancelButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-    alignItems: 'center',
-  },
-  saveButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#111',
-    alignItems: 'center',
-  },
+  cancelButton: { flex: 1 },
+  saveButton: { flex: 1 },
   saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: '#fff', fontWeight: '600' },
 });
