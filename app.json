@@ -1,12 +1,14 @@
 {
   "expo": {
     "name": "Nasaan ba?",
-    "slug": "nasaan-ba",
+    "slug": "nasaa-ba",
     "scheme": "nasaanba",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
@@ -17,7 +19,12 @@
     },
     "android": {
       "package": "com.nasaanba.app",
-      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT", "SCHEDULE_EXACT_ALARM", "POST_NOTIFICATIONS"]
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -35,7 +42,11 @@
       ]
     ],
     "extra": {
-      "router": {}
-    }
+      "router": {},
+      "eas": {
+        "projectId": "abf8424c-60cd-4f73-8262-d050d191f168"
+      }
+    },
+    "owner": "empansun"
   }
 }
