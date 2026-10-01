@@ -203,3 +203,17 @@ test('backup round-trip includes photos and failed restores leave the database i
   assert.deepEqual(sqlite.prepare('PRAGMA foreign_key_check').all(), []);
   sqlite.close();
 });
+
+test('dashboard counts include all active records, not just the recent page', () => {
+  const { sqlite, overrides } = fixture();
+  try {
+    const { getDashboardSummary } = loadTs('src/services/dashboardService.ts', overrides);
+    assert.deepEqual({ ...getDashboardSummary() }, { items: 0, locations: 0, categories: 0, reminders: 0 });
+    sqlite.exec("INSERT INTO locations(id,name,path) VALUES('home','Home','Home'),('room','Room','Home/Room'); INSERT INTO categories(id,name) VALUES('electronics','Electronics');");
+    for (let i = 0; i < 24; i++) sqlite.prepare('INSERT INTO items(id,name,status,quantity) VALUES(?,?,?,?)').run('item-' + i, 'Item ' + i, 'active', 5);
+    sqlite.exec("INSERT INTO items(id,name,status) VALUES('archived','Old item','archived'); INSERT INTO reminders(id,title,remind_at,status) VALUES('pending','Pending','2026-12-01T00:00:00Z','PENDING'),('done','Done','2026-12-01T00:00:00Z','COMPLETED'),('cancelled','Cancelled','2026-12-01T00:00:00Z','CANCELLED');");
+    assert.deepEqual({ ...getDashboardSummary() }, { items: 24, locations: 2, categories: 1, reminders: 1 });
+    sqlite.exec("UPDATE items SET status='archived' WHERE id='item-0'; UPDATE reminders SET status='COMPLETED' WHERE id='pending';");
+    assert.deepEqual({ ...getDashboardSummary() }, { items: 23, locations: 2, categories: 1, reminders: 0 });
+  } finally { sqlite.close(); }
+});
