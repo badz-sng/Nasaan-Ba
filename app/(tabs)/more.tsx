@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { SupportModal } from '@/components/SupportModal';
 import { ActionButton } from '@/components/ActionButton';
 import { Text, StyleSheet, ScrollView } from 'react-native';
 import { Link } from 'expo-router';
@@ -13,6 +15,7 @@ const MORE_LINKS = [
 ] as const;
 
 export default function MoreScreen() {
+  const [supportVisible, setSupportVisible] = useState(false);
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>More</Text>
@@ -21,6 +24,8 @@ export default function MoreScreen() {
           <ActionButton variant="secondary" style={{ marginBottom: 10 }}>{link.label}  ›</ActionButton>
         </Link>
       ))}
+      <ActionButton onPress={() => setSupportVisible(true)} style={{ marginTop: 12 }}>Support me</ActionButton>
+      <SupportModal visible={supportVisible} onClose={() => setSupportVisible(false)} />
     </ScrollView>
   );
 }

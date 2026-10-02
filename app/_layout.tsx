@@ -1,3 +1,4 @@
+import { SupportPrompt } from '@/components/SupportPrompt';
 import { ActionButton } from '@/components/ActionButton';
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
@@ -75,7 +76,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AppLockGate><Stack screenOptions={{ headerShown: false }} /></AppLockGate>
+      <AppLockGate><Stack screenOptions={{ headerShown: false }} /><SupportPrompt /></AppLockGate>
     </SafeAreaProvider>
   );
 }
