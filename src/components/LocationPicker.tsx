@@ -1,5 +1,5 @@
 import { ActionButton } from '@/components/ActionButton';
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   View,
   Text,
@@ -19,11 +19,18 @@ interface LocationPickerProps {
   onChange: (locationId: string, locationPath: string) => void;
   error?: string;
   disabled?: boolean;
+  visible?: boolean;
+  onVisibleChange?: (visible: boolean) => void;
+  renderTrigger?: (open: () => void) => ReactNode;
 }
 
-export function LocationPicker({ value, label, onChange, error, disabled }: LocationPickerProps) {
-  const [visible, setVisible] = useState(false);
+export function LocationPicker({ value, label, onChange, error, disabled, visible: controlledVisible, onVisibleChange, renderTrigger }: LocationPickerProps) {
+  const [internalVisible, setInternalVisible] = useState(false);
+  const visible = controlledVisible ?? internalVisible;
+  const setVisible = (value: boolean) => { setInternalVisible(value); onVisibleChange?.(value); };
   const { tree, isLoading, error: loadError, refresh } = useLocationTree();
+
+  useEffect(() => { if (visible) void refresh(); }, [visible, refresh]);
 
   const handleSelect = (node: LocationTreeNode) => {
     onChange(node.id, node.path);
@@ -32,12 +39,12 @@ export function LocationPicker({ value, label, onChange, error, disabled }: Loca
 
   return (
     <View>
-      <Pressable accessibilityRole="button" disabled={disabled} style={[styles.trigger, error && styles.triggerError, disabled && { opacity: 0.5 }]} onPress={() => { void refresh(); setVisible(true); }}>
+      {renderTrigger ? renderTrigger(() => { if (!disabled) setVisible(true); }) : <Pressable accessibilityRole="button" disabled={disabled} style={[styles.trigger, error && styles.triggerError, disabled && { opacity: 0.5 }]} onPress={() => setVisible(true)}>
         <Text style={label ? styles.triggerText : styles.triggerPlaceholder}>
           {label ?? 'Choose a location'}
         </Text>
         <Text style={styles.chevron}>›</Text>
-      </Pressable>
+      </Pressable>}
       {error && <Text style={styles.error}>{error}</Text>}
 
       <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setVisible(false)}>

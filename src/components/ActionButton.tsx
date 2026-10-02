@@ -7,7 +7,7 @@ type Props = Omit<PressableProps, 'children'> & { children: React.ReactNode; var
 export const ActionButton = forwardRef<View, Props>(function ActionButton({ children, variant = 'primary', style, disabled, accessibilityState, ...props }, ref) {
   return <Pressable {...props} ref={ref} disabled={disabled} accessibilityRole="button"
     accessibilityState={{ ...accessibilityState, disabled: !!disabled }}
-    style={(state) => [typeof style === 'function' ? style(state) : style, styles.base, styles[variant], disabled && styles.disabled, state.pressed && !disabled && styles.pressed]}>
+    style={(state) => [styles.base, styles[variant], typeof style === 'function' ? style(state) : style, disabled && styles.disabled, state.pressed && !disabled && styles.pressed]}>
     <Text style={[styles.label, variant === 'primary' ? styles.light : variant === 'danger' ? styles.dangerText : styles.teal]}>{children}</Text>
   </Pressable>;
 });

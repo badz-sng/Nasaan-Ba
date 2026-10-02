@@ -13,6 +13,9 @@ export function AppIcon({ name, color }: { name: string; color: ColorValue }) {
     {name === 'more' && [5, 11, 17].map(top => <View key={top} style={[styles.line, { top, backgroundColor: color }]} />)}
     {name === 'categories' && [0, 1, 2, 3].map(i => <View key={i} style={[styles.gridSquare, stroke, { left: 3 + (i % 2) * 11, top: 3 + Math.floor(i / 2) * 11 }]} />)}
     {name === 'reminders' && <><View style={[styles.bell, stroke]} /><View style={[styles.bellBase, { backgroundColor: color }]} /><View style={[styles.bellDot, { backgroundColor: color }]} /></>}
+    {name === 'condition' && <Text style={[styles.gear, { color }]}>♡</Text>}
+    {name === 'notes' && <Text style={[styles.gear, { color }]}>▤</Text>}
+    {name === 'calendar' && <View style={{ width: 20, height: 20, margin: 2, borderWidth: 1.8, borderColor: color, borderRadius: 3 }}><View style={{ height: 5, borderBottomWidth: 1.8, borderColor: color }} /></View>}
     {name === 'settings' && <Text style={[styles.gear, { color }]}>⚙</Text>}
   </View>;
 }

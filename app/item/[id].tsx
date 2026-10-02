@@ -1,5 +1,9 @@
-import { ActionButton } from '@/components/ActionButton';
-import { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppIcon } from '@/components/AppIcon';
+import { LinkPressable } from '@/components/LinkPressable';
+import { reminderService } from '@/features/reminders/reminder.service';
+import { ActionButton, colors } from '@/components/ActionButton';
+import { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +14,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { useLocalSearchParams, router, Link } from 'expo-router';
+import { useLocalSearchParams, router, Link, useFocusEffect } from 'expo-router';
 import { itemService } from '@/features/items/item.service';
 import { useUpdateItem, useArchiveItem, useDeleteItem, useLocationHistory, useMoveItem } from '@/hooks/useItems';
 import type { ItemWithLocation } from '@/features/items/item.types';
@@ -25,6 +29,10 @@ export default function ItemDetailScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<ItemDraft>(emptyItemDraft);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [movePicker, setMovePicker] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [reminderLabel, setReminderLabel] = useState('None');
 
   const { updateItem, isSubmitting, fieldErrors } = useUpdateItem();
   const { archiveItem, isArchiving } = useArchiveItem();
@@ -33,12 +41,17 @@ export default function ItemDetailScreen() {
   const { history, error: historyError, isLoading: isHistoryLoading, refresh: refreshHistory } = useLocationHistory(id);
   const { moveItem, isMoving } = useMoveItem();
 
-  const loadItem = async () => {
+  const loadItem = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const result = await itemService.getItem(id);
       setItem(result);
+      setPhotoFailed(false);
+      try {
+        const pending = await reminderService.getForItem(id);
+        setReminderLabel(pending.length ? new Date(pending[0].remindAt).toLocaleDateString() : 'None');
+      } catch { setReminderLabel('Unavailable'); }
       if (result) {
         setDraft({ name: result.name, description: result.description ?? '', quantity: String(result.quantity),
           unit: result.unit ?? '', condition: result.condition ?? '', notes: result.notes ?? '',
@@ -49,11 +62,9 @@ export default function ItemDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadItem();
   }, [id]);
+
+  useFocusEffect(useCallback(() => { void loadItem(); }, [loadItem]));
 
   const handleSave = async () => {
     const result = await updateItem(id, { ...draft, quantity: Number(draft.quantity) });
@@ -100,130 +111,82 @@ export default function ItemDetailScreen() {
     ]);
   };
 
-  if (isLoading) return <ActivityIndicator style={styles.center} />;
-  if (error) return <Text style={styles.error}>{error}</Text>;
-  if (!item) return <Text style={styles.error}>Item not found.</Text>;
+  const busy = isLoading || isMoving || isArchiving || isDeleting || isSubmitting || photoBusy;
+  const goBack = () => router.canGoBack() ? router.back() : router.replace('/(tabs)/items');
+  const showMenu = () => Alert.alert(item?.name ?? 'Item', 'Item actions', [
+    { text: 'Location history', onPress: () => setShowHistory(true) },
+    { text: 'Add reminder', onPress: () => router.push({ pathname: '/more/reminders', params: { itemId: id } }) },
+    { text: 'Archive', onPress: handleArchive },
+    { text: 'Delete', style: 'destructive', onPress: handleDelete },
+    { text: 'Cancel', style: 'cancel' },
+  ]);
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-      <ActionButton variant="link" accessibilityRole="button" onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/items')}><Text>Back</Text></ActionButton>
-      {!isEditing ? (
-        <>
-          <Text style={styles.name}>{item.name}</Text>
-          {item.photoUri && <Image accessibilityLabel="Item photo" source={{ uri: item.photoUri }} style={{ width: '100%', height: 220, marginTop: 12 }} resizeMode="contain" />}
-          {item.categoryName && <Text style={styles.category}>{item.categoryName}</Text>}
-          <Text style={styles.sectionLabel}>CURRENT LOCATION</Text>
-          <LocationPicker
-            value={item.currentLocationId ?? null}
-            disabled={isMoving}
-            label={item.currentLocationPath}
-            onChange={async (newLocationId) => {
-              if (newLocationId === item.currentLocationId) return;
-              const result = await moveItem(id, newLocationId);
-              if (result.success) {
-                await loadItem();
-                await refreshHistory();
-              } else {
-                Alert.alert('Could not move item', result.message);
-              }
-            }}
-          />
-          {isMoving && <Text>Moving...</Text>}
-          <Text style={styles.sectionLabel}>LOCATION HISTORY</Text>
-          {isHistoryLoading ? (
-            <ActivityIndicator style={{ marginTop: 8 }} />
-          ) : historyError ? (
-            <Pressable onPress={refreshHistory}><Text style={styles.error}>{historyError} Tap to retry.</Text></Pressable>
-          ) : history.length === 0 ? (
-            <Text style={styles.hint}>No history yet.</Text>
-          ) : (
-            history.map((entry) => (
-              <View key={entry.id} style={styles.historyRow}>
-                <Text style={styles.historyPath}>
-                  {entry.locationPath ?? 'Unknown location'}
-                  {entry.isCurrent ? ' (current)' : ''}
-                </Text>
-                <Text style={styles.historyDate}>
-                  {new Date(entry.startedAt).toLocaleDateString()}
-                  {entry.endedAt ? ` – ${new Date(entry.endedAt).toLocaleDateString()}` : ' – present'}
-                </Text>
-              </View>
-            ))
-          )}
-          {item.description && <Text style={styles.notes}>{item.description}</Text>}
-          <Text style={styles.notes}>Quantity: {item.quantity} {item.unit ?? ''}</Text>
-          {item.condition && <Text style={styles.notes}>Condition: {item.condition}</Text>}
-          {item.notes && (
-            <>
-              <Text style={styles.sectionLabel}>NOTES</Text>
-              <Text style={styles.notes}>{item.notes}</Text>
-            </>
-          )}
-          <ActionButton variant="primary" style={styles.actionButton} disabled={isMoving || isArchiving || isDeleting} onPress={() => setIsEditing(true)}>
-            <Text >Edit</Text>
-          </ActionButton>
-          <Link href={{ pathname: '/more/reminders', params: { itemId: id } }} asChild><ActionButton variant="secondary" style={{ marginTop: 16 }}>Add Reminder</ActionButton></Link>
-          <ActionButton variant="secondary"
-            style={[styles.actionButton, styles.secondaryButton]}
-            onPress={handleArchive}
-            disabled={isArchiving || isMoving || isDeleting}
-          >
-            <Text >
-              {isArchiving ? 'Archiving...' : 'Archive'}
-            </Text>
-          </ActionButton>
-          <ActionButton variant="danger"
-            style={[styles.actionButton, styles.dangerButton]}
-            onPress={handleDelete}
-            disabled={isDeleting || isMoving || isArchiving}
-          >
-            <Text >
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </Text>
-          </ActionButton>
-        </>
-      ) : (
-        <>
-          <ItemFields value={draft} onChange={setDraft} errors={fieldErrors} disabled={isSubmitting || photoBusy} onPhotoBusyChange={setPhotoBusy} />
+  if (isLoading && !item) return <SafeAreaView style={styles.center}><ActivityIndicator color={colors.primaryDark} /><Text>Loading item...</Text></SafeAreaView>;
+  if (error || !item) return <SafeAreaView style={styles.center}><Text accessibilityRole="alert" style={styles.error}>{error ?? 'Item not found.'}</Text><ActionButton onPress={loadItem}>Try Again</ActionButton><ActionButton variant="link" onPress={goBack}>Back</ActionButton></SafeAreaView>;
 
-          <ActionButton variant="primary"
-            style={[styles.actionButton, isSubmitting && styles.disabled]}
-            onPress={handleSave}
-            disabled={isSubmitting || photoBusy}
-          >
-            <Text >
-              {isSubmitting ? 'Saving...' : 'Save'}
-            </Text>
-          </ActionButton>
-          <ActionButton variant="secondary" style={[styles.actionButton, styles.secondaryButton]} disabled={isSubmitting || photoBusy} onPress={() => { setIsEditing(false); void loadItem(); }}>
-            <Text >Cancel</Text>
-          </ActionButton>
-        </>
-      )}
+  return <SafeAreaView edges={['top', 'bottom', 'left', 'right']} style={styles.container}>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {isEditing ? <>
+        <Text accessibilityRole="header" style={styles.name}>Edit Item</Text>
+        <ItemFields value={draft} onChange={setDraft} errors={fieldErrors} disabled={busy} onPhotoBusyChange={setPhotoBusy} />
+      </> : <>
+        <View style={styles.hero}>
+          {item.photoUri && !photoFailed ? <Image accessibilityLabel={`${item.name} photo`} source={{ uri: item.photoUri }} resizeMode="cover" style={styles.photo} onError={() => setPhotoFailed(true)} /> :
+            <View style={[styles.photo, styles.placeholder]}><AppIcon name="items" color={colors.primaryDark} /><Text style={styles.caption}>No photo</Text></View>}
+          <Pressable accessibilityRole="button" accessibilityLabel="Back to items" disabled={busy} onPress={goBack} style={[styles.photoButton, styles.back]}><Text style={styles.backGlyph}>‹</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Item actions" disabled={busy} onPress={showMenu} style={[styles.photoButton, styles.menu]}><Text style={styles.backGlyph}>⋮</Text></Pressable>
+        </View>
+        <View style={styles.nameRow}><Text accessibilityRole="header" style={styles.name}>{item.name}</Text><ActionButton variant="secondary" disabled={busy} onPress={() => setIsEditing(true)}>✎ Edit</ActionButton></View>
+        <View style={styles.chips}>{item.categoryName && <Text style={[styles.chip, styles.category]}>{item.categoryName}</Text>}{item.tags?.map(tag => <Text style={styles.chip} key={tag.id}>{tag.name}</Text>)}</View>
+        <LocationPicker value={item.currentLocationId ?? null} label={item.currentLocationPath} disabled={busy} visible={movePicker} onVisibleChange={setMovePicker}
+          renderTrigger={(open) => <Pressable accessibilityRole="button" accessibilityLabel="Change item location" disabled={busy} onPress={open} style={styles.locationCard}>
+            <AppIcon name="locations" color={colors.primaryDark} /><View style={styles.locationBody}><Text style={styles.cardTitle}>Location</Text><Text style={styles.caption}>{item.currentLocationPath?.replace(/\//g, ' › ') ?? 'Unknown location'}</Text></View><Text style={styles.chevron}>›</Text>
+          </Pressable>}
+          onChange={async (newLocationId) => {
+            if (newLocationId === item.currentLocationId) return;
+            const result = await moveItem(id, newLocationId);
+            if (result.success) { await loadItem(); await refreshHistory(); }
+            else Alert.alert('Could not move item', result.message);
+          }} />
+        <View style={styles.infoGrid}>
+          <InfoCard icon="items" label="Quantity"><Text style={styles.value}>{item.quantity} {item.unit ?? ''}</Text></InfoCard>
+          <InfoCard icon="condition" label="Condition"><Text style={[styles.value, item.condition?.toLowerCase() === 'good' && styles.good]}>{item.condition || 'Not set'}</Text></InfoCard>
+          <InfoCard icon="calendar" label="Date Added"><Text style={styles.value}>{new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</Text></InfoCard>
+          <Link href={{ pathname: '/more/reminders', params: { itemId: id } }} asChild><LinkPressable style={styles.infoCard} accessibilityLabel="Manage item reminders"><AppIcon name="reminders" color={colors.muted} /><View style={styles.infoBody}><Text style={styles.caption}>Reminder</Text><Text style={styles.value}>{reminderLabel}</Text></View></LinkPressable></Link>
+        </View>
+        {!!item.description && <View style={styles.notesCard}><Text style={styles.cardTitle}>Description</Text><Text style={styles.notes}>{item.description}</Text></View>}
+        <View style={styles.notesCard}><View style={styles.notesHeading}><AppIcon name="notes" color={colors.muted} /><Text style={styles.cardTitle}>Notes</Text></View><Text style={styles.notes}>{item.notes || 'No notes yet.'}</Text></View>
+        {showHistory && <View style={styles.notesCard}>
+          <View style={styles.nameRow}><Text style={styles.cardTitle}>Location History</Text><ActionButton variant="link" onPress={() => setShowHistory(false)}>Hide</ActionButton></View>
+          {isHistoryLoading ? <ActivityIndicator color={colors.primaryDark} /> : historyError ? <ActionButton variant="link" onPress={refreshHistory}>{historyError} Tap to retry.</ActionButton> : history.length === 0 ? <Text style={styles.caption}>No history yet.</Text> : history.map(entry => <View key={entry.id} style={styles.historyRow}><Text style={styles.value}>{entry.locationPath ?? 'Unknown location'}{entry.isCurrent ? ' (current)' : ''}</Text><Text style={styles.caption}>{new Date(entry.startedAt).toLocaleDateString()} – {entry.endedAt ? new Date(entry.endedAt).toLocaleDateString() : 'present'}</Text></View>)}
+        </View>}
+      </>}
     </ScrollView>
-  );
+    <View style={styles.footer}>{isEditing ? <>
+      <ActionButton variant="secondary" style={styles.footerButton} disabled={busy} onPress={() => { setIsEditing(false); void loadItem(); }}>Cancel</ActionButton>
+      <ActionButton style={styles.footerButton} disabled={busy} onPress={handleSave}>{isSubmitting ? 'Saving...' : 'Save Item'}</ActionButton>
+    </> : <>
+      <ActionButton variant="secondary" style={styles.footerButton} disabled={busy || isLoading} onPress={() => setMovePicker(true)}>{isMoving ? 'Moving...' : '⌖ Move'}</ActionButton>
+      <ActionButton style={styles.footerButton} disabled={busy || isLoading} onPress={() => setIsEditing(true)}>✎ Edit</ActionButton>
+    </>}</View>
+  </SafeAreaView>;
+}
+
+function InfoCard({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) {
+  return <View style={styles.infoCard}><AppIcon name={icon} color={colors.muted} /><View style={styles.infoBody}><Text style={styles.caption}>{label}</Text>{children}</View></View>;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, paddingTop: 60 },
-  center: { flex: 1, justifyContent: 'center' },
-  name: { fontSize: 22, fontWeight: '700' },
-  category: { color: '#888', marginTop: 4 },
-  sectionLabel: { fontSize: 12, color: '#999', marginTop: 24, letterSpacing: 0.5 },
-  location: { fontSize: 16, marginTop: 8 },
-  notes: { fontSize: 15, marginTop: 8, color: '#333' },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16, marginTop: 8 },
-  notesInput: { minHeight: 80, textAlignVertical: 'top' },
-  actionButton: { marginTop: 16 },
-  actionButtonText: { color: '#fff', fontWeight: '600' },
-  secondaryButton: {  },
-  secondaryButtonText: { color: '#333', fontWeight: '600' },
-  dangerButton: {  },
-  dangerButtonText: { color: '#b91c1c', fontWeight: '600' },
-  disabled: { opacity: 0.5 },
-  error: { color: '#b91c1c', textAlign: 'center', marginTop: 60 },
-  hint: {color: '#999', fontStyle: 'italic', marginTop: 8},
-  historyRow: {marginTop: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0'},
-  historyPath: {fontSize: 14, fontWeight: '600'},
-  historyDate: {fontSize: 12, color: '#999', marginTop: 2}
+  container: { flex: 1, backgroundColor: colors.background }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, gap: 12 },
+  hero: { borderRadius: 12, overflow: 'hidden' }, photo: { width: '100%', aspectRatio: 1.3, backgroundColor: '#E8F7F5' }, placeholder: { alignItems: 'center', justifyContent: 'center', gap: 12 },
+  photoButton: { position: 'absolute', top: 8, width: 44, height: 44, backgroundColor: '#FFFFFF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }, back: { left: 8 }, menu: { right: 8 }, backGlyph: { fontSize: 30, color: colors.text },
+  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, name: { flex: 1, fontSize: 24, fontWeight: '700', color: colors.text },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, chip: { fontSize: 12, color: colors.muted, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#EEF3F8', borderRadius: 10 }, category: { color: '#0369A1', backgroundColor: '#E0F2FE' },
+  locationCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 12, backgroundColor: '#E8F7F5', minHeight: 72 }, locationBody: { flex: 1, gap: 4 }, chevron: { fontSize: 24, color: colors.muted },
+  infoGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }, infoCard: { width: '48%', minHeight: 88, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, infoBody: { flex: 1, gap: 6 },
+  caption: { fontSize: 13, color: colors.muted }, value: { fontSize: 14, fontWeight: '600', color: colors.text }, good: { backgroundColor: '#D1FAE5', color: '#047857', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' },
+  notesCard: { padding: 16, backgroundColor: '#FFFFFF', borderRadius: 12, gap: 8 }, notesHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 }, cardTitle: { fontSize: 14, fontWeight: '600', color: colors.text }, notes: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  footer: { flexDirection: 'row', gap: 12, padding: 16, backgroundColor: colors.background }, footerButton: { flex: 1, minHeight: 52 },
+  error: { color: '#B91C1C', textAlign: 'center' }, historyRow: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 12, gap: 6 },
 });

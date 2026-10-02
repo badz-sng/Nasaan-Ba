@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { randomUUID } from 'expo-crypto';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, asc } from 'drizzle-orm';
 import { getDb } from '@/database/client';
 import { reminders } from '@/database/schema';
 import { scheduleReminder, cancelReminder, withNotificationLock } from '@/services/notificationService';
@@ -32,6 +32,9 @@ export function localDateTime(iso: string): string {
 }
 
 export const reminderService = {
+  async getForItem(itemId: string): Promise<Reminder[]> {
+    return getDb().select().from(reminders).where(and(eq(reminders.itemId, itemId), eq(reminders.status, 'PENDING'))).orderBy(asc(reminders.remindAt));
+  },
   async getAll(): Promise<Reminder[]> {
     return getDb().select().from(reminders).orderBy(desc(reminders.remindAt));
   },

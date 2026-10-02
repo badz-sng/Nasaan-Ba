@@ -113,8 +113,8 @@ export class ItemRepository {
 
     if (rows.length === 0) return null;
     const row = rows[0];
-    const assignedTags = await db.select({ tagId: itemTags.tagId }).from(itemTags).where(eq(itemTags.itemId, id));
-    return { ...row.item, currentLocationId: row.locationId, tagIds: assignedTags.map((t) => t.tagId), currentLocationPath: row.locationPath, categoryName: row.categoryName } as ItemWithLocation;
+    const assignedTags = await db.select({ tagId: itemTags.tagId, name: tags.name }).from(itemTags).innerJoin(tags, eq(tags.id, itemTags.tagId)).where(eq(itemTags.itemId, id)).orderBy(tags.name);
+    return { ...row.item, currentLocationId: row.locationId, tagIds: assignedTags.map((t) => t.tagId), tags: assignedTags.map(t => ({ id: t.tagId, name: t.name })),  currentLocationPath: row.locationPath, categoryName: row.categoryName } as ItemWithLocation;
   }
 
   async findAll(options: FindAllItemsOptions = {}): Promise<ItemWithLocation[]> {
