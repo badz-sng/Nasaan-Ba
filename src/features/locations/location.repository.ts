@@ -1,13 +1,16 @@
 import { randomUUID } from 'expo-crypto';
-import { eq, isNull, sql } from 'drizzle-orm';
+import { eq, isNull, sql, and, getTableColumns } from 'drizzle-orm';
 import { getDb } from '@/database/client';
-import { locations } from '@/database/schema';
+import { locations, items, itemLocations } from '@/database/schema';
 import type { CreateLocationInput, Location, UpdateLocationInput } from './location.types';
 
 export class LocationRepository {
   async findAll(): Promise<Location[]> {
     const db = getDb();
-    const rows = await db.select().from(locations).orderBy(locations.path);
+    const rows = await db.select({ ...getTableColumns(locations), itemCount: sql<number>`count(${items.id})` }).from(locations)
+      .leftJoin(itemLocations, and(eq(itemLocations.locationId, locations.id), eq(itemLocations.isCurrent, true)))
+      .leftJoin(items, and(eq(items.id, itemLocations.itemId), eq(items.status, 'active')))
+      .groupBy(locations.id).orderBy(locations.path);
     return rows as Location[];
   }
 

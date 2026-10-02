@@ -17,6 +17,7 @@ export interface Location {
   description: string | null;
   path: string;
   depth: number;
+  itemCount?: number;
   createdAt: string;
   updatedAt: string;
 }

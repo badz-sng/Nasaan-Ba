@@ -1,4 +1,6 @@
-import { ActionButton } from '@/components/ActionButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppIcon } from '@/components/AppIcon';
+import { ActionButton, colors } from '@/components/ActionButton';
 import {
   View,
   Text,
@@ -24,6 +26,7 @@ export default function LocationsScreen() {
   const { deleteLocation, deleteLocationWithSubtree, fieldErrors } = useDeleteLocation();
   void fieldErrors;
   const [showAddForm, setShowAddForm] = useState(false);
+  const [query, setQuery] = useState('');
   const [newName, setNewName] = useState('');
   const [parentId, setParentId] = useState<string | null>(null);
   const [parentLabel, setParentLabel] = useState<string | null>(null);
@@ -98,8 +101,9 @@ export default function LocationsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Locations</Text>
+<SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
+      <View style={styles.header}><Text style={styles.title}>Locations</Text><Pressable accessibilityRole="button" accessibilityLabel="Add location" disabled={isSubmitting || isUpdating} onPress={() => { setEditing(null); setNewName(''); setParentId(null); setParentLabel(null); setShowAddForm(true); }} style={styles.addIcon}><Text style={styles.plus}>＋</Text></Pressable></View>
+      <View style={styles.search}><AppIcon name="search" color={colors.muted} /><TextInput accessibilityLabel="Search locations" placeholder="Search locations..." placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={styles.searchInput} autoCorrect={false} />{!!query && <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setQuery('')} style={styles.clear}><Text style={styles.clearText}>×</Text></Pressable>}</View>
 
       {isLoading && <ActivityIndicator style={styles.loader} />}
 
@@ -114,8 +118,7 @@ export default function LocationsScreen() {
 
       {!isLoading && !error && (
         <ScrollView style={styles.treeContainer}>
-          <Text style={styles.parentHint}>Tap a location to edit. Hold to delete.</Text>
-          <LocationTree nodes={tree} onDelete={handleDelete} onSelect={(node) => {
+          <LocationTree nodes={tree} query={query} onDelete={handleDelete} onSelect={(node) => {
             setEditing(node);
             setNewName(node.name);
             setParentId(node.parentId);
@@ -167,18 +170,17 @@ export default function LocationsScreen() {
         </View>
       )}
 
-      {!showAddForm && (
-        <ActionButton variant="primary" style={styles.addButton} onPress={() => setShowAddForm(true)}>
-          <Text >+ Add Location</Text>
-        </ActionButton>
-      )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, paddingTop: 60 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 16 },
+  container: { flex: 1, paddingHorizontal: 16, backgroundColor: colors.background },
+  title: { fontSize: 24, fontWeight: '700', color: colors.text },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginBottom: 12 },
+  addIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }, plus: { color: '#FFFFFF', fontSize: 28 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#EEF3F8', marginBottom: 16 }, searchInput: { flex: 1, minWidth: 0, paddingVertical: 12, fontSize: 14, color: colors.text },
+  clear: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, clearText: { fontSize: 24, color: colors.muted },
   loader: { marginTop: 24 },
   errorBox: { alignItems: 'center', marginTop: 24, gap: 8 },
   errorText: { color: '#b91c1c', textAlign: 'center' },

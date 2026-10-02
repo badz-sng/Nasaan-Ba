@@ -238,3 +238,16 @@ test('item browsing searches and sorts before pagination and returns real tag ch
     assert.deepEqual(await reminderService.getForItem('a'), []);
   } finally { sqlite.close(); }
 });
+
+test('location badges count current active items across descendants', async () => {
+  const { sqlite, overrides } = fixture();
+  try {
+    const { locationRepository } = loadTs('src/features/locations/location.repository.ts', overrides);
+    const { locationService } = loadTs('src/features/locations/location.service.ts', { ...overrides, './location.repository': { locationRepository }, './location.validation': loadTs('src/features/locations/location.validation.ts'), '@/services/notificationService': {} });
+    sqlite.exec("INSERT INTO locations(id,name,path,parent_id) VALUES('home','Home','Home',NULL),('drawer','Drawer','Home/Drawer','home'); INSERT INTO items(id,name,status) VALUES('active','Active','active'),('old','Old','archived'); INSERT INTO item_locations(id,item_id,location_id,is_current) VALUES('current','active','drawer',1),('history','active','home',0),('archived','old','drawer',1);");
+    const tree = await locationService.getLocationTree();
+    assert.equal(tree[0].itemCount, 1); assert.equal(tree[0].children[0].itemCount, 1);
+    sqlite.exec("UPDATE items SET status='archived' WHERE id='active';");
+    assert.equal((await locationService.getLocationTree())[0].itemCount, 0);
+  } finally { sqlite.close(); }
+});

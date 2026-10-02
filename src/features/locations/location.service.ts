@@ -52,7 +52,10 @@ class LocationService {
 
     const sortNodes = (nodes: LocationTreeNode[]) => {
       nodes.sort((a, b) => a.name.localeCompare(b.name));
-      for (const n of nodes) sortNodes(n.children);
+      for (const n of nodes) {
+        sortNodes(n.children);
+        n.itemCount = (n.itemCount ?? 0) + n.children.reduce((sum, child) => sum + (child.itemCount ?? 0), 0);
+      }
     };
     sortNodes(roots);
 
