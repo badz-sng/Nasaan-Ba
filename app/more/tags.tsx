@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { useState } from 'react';
 import {
@@ -74,8 +75,7 @@ export default function TagsScreen() {
 
   return (
     <View style={styles.container}>
-      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
-      <Text style={styles.title}>Tags</Text>
+      <ScreenHeader title="Tags" />
 
       {isLoading && <ActivityIndicator style={styles.loader} />}
 

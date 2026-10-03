@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { View, Text, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
@@ -5,8 +6,7 @@ import { Link } from 'expo-router';
 export default function AboutScreen() {
   return (
     <View style={styles.container}>
-      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
-      <Text style={styles.title}>Nasaan ba?</Text>
+      <ScreenHeader title="About" />
       <Text style={styles.subtitle}>Local-first personal inventory app</Text>
       <Text style={styles.version}>Version 1.0.0</Text>
     </View>

@@ -1,3 +1,4 @@
+import { StartupScreen } from '@/components/StartupScreen';
 import { SupportPrompt } from '@/components/SupportPrompt';
 import { ActionButton } from '@/components/ActionButton';
 import { useEffect, useState } from 'react';
@@ -17,14 +18,19 @@ type BootState = { status: 'loading' } | { status: 'ready' } | { status: 'error'
 
 export default function RootLayout() {
   const [boot, setBoot] = useState<BootState>({ status: 'loading' });
+  const [startupStep, setStartupStep] = useState(0);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     (async () => {
       try {
+        setStartupStep(0);
         await initDatabase();
+        setStartupStep(1);
         await seedDefaults();
+        setStartupStep(2);
         await initializeAppLock();
+        setStartupStep(3);
         setBoot({ status: 'ready' });
         void reconcileNotifications().catch(() => undefined);
       } catch (err) {
@@ -58,10 +64,7 @@ export default function RootLayout() {
   if (boot.status === 'loading') {
     return (
       <SafeAreaProvider>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.loadingText}>Preparing Nasaan ba?...</Text>
-        </View>
+        <StartupScreen step={startupStep} />
       </SafeAreaProvider>
     );
   }

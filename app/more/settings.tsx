@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { useCallback, useState } from 'react';
 import { ScrollView, Text, Pressable, Alert, Linking, ActivityIndicator } from 'react-native';
@@ -25,8 +26,7 @@ export default function SettingsScreen() {
   };
   return (
     <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 60, gap: 24 }}>
-      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Settings</Text>
+      <ScreenHeader title="Settings" />
       <Text>Notifications: {permission}</Text>
       <ActionButton variant="primary" accessibilityRole="button" disabled={busy} onPress={schedule}><Text>Enable / Retry Reminder Notifications</Text></ActionButton>
       {busy && <ActivityIndicator />}

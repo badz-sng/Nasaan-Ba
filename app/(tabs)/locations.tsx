@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
 import { ActionButton, colors } from '@/components/ActionButton';
@@ -11,6 +12,9 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useState } from 'react';
 import { Link } from 'expo-router';
@@ -128,10 +132,12 @@ export default function LocationsScreen() {
         </ScrollView>
       )}
 
-      {showAddForm && (
-        <View style={styles.addForm}>
-          <Text>{editing ? `Edit ${editing.name}` : 'New location'}</Text>
-          {editing && <Link href={{ pathname: '/more/reminders', params: { locationId: editing.id } }} asChild><ActionButton variant="secondary">Add Reminder for This Location</ActionButton></Link>}
+      <Modal visible={showAddForm} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { if (!isSubmitting && !isUpdating) setShowAddForm(false); }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.addForm} keyboardShouldPersistTaps="handled">
+          <ScreenHeader title={editing ? 'Edit location' : 'Add location'} onBack={() => setShowAddForm(false)} disabled={isSubmitting || isUpdating} />
+          {editing && <Link href={{ pathname: '/more/reminders', params: { locationId: editing.id } }} asChild><ActionButton variant="secondary" onPress={() => setShowAddForm(false)}>Add Reminder for This Location</ActionButton></Link>}
           <Text style={styles.formLabel}>Name</Text>
           <TextInput
             style={styles.input}
@@ -143,7 +149,7 @@ export default function LocationsScreen() {
           <Text style={styles.parentHint}>
             {parentLabel ?? (parentId ? 'Current parent (unchanged)' : 'Root level — no parent')}
           </Text>
-          <ScrollView style={styles.parentPicker} nestedScrollEnabled>
+          <View style={styles.parentPicker}>
             <Pressable
               style={styles.parentOption}
               onPress={() => {
@@ -154,7 +160,7 @@ export default function LocationsScreen() {
               <Text>— Root level —</Text>
             </Pressable>
             <LocationTree nodes={tree} onSelect={handleSelectParent} selectedId={parentId} />
-          </ScrollView>
+          </View>
           <View style={styles.formActions}>
             <ActionButton variant="secondary" style={styles.cancelButton} onPress={() => { setShowAddForm(false); setEditing(null); setNewName(''); setParentId(null); setParentLabel(null); }}>
               <Text>Cancel</Text>
@@ -167,8 +173,10 @@ export default function LocationsScreen() {
               <Text >{isSubmitting || isUpdating ? 'Saving...' : 'Save'}</Text>
             </ActionButton>
           </View>
-        </View>
-      )}
+        </ScrollView>
+        </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -193,7 +201,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
-    maxHeight: '60%',
+    paddingBottom: 32,
   },
   formLabel: { fontSize: 13, color: '#666', marginTop: 8 },
   input: {
@@ -206,7 +214,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   parentHint: { fontSize: 14, color: '#333', marginTop: 4, marginBottom: 8 },
-  parentPicker: { maxHeight: 160, backgroundColor: '#fff', borderRadius: 8 },
+  parentPicker: { backgroundColor: '#fff', borderRadius: 8 },
   parentOption: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   formActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
   cancelButton: { flex: 1 },

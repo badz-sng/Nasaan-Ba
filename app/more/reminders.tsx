@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { useCallback, useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, Alert, ActivityIndicator, StyleSheet } from 'react-native';
@@ -33,8 +34,7 @@ export default function RemindersScreen() {
   const reset = () => { setEditing(null); setTitle(''); setDescription(''); setRepeatType('NONE'); setTime(localDateTime(new Date(Date.now() + 3600000).toISOString())); setShowForm(false); };
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
-      <Text style={styles.title}>Reminders</Text>
+      <ScreenHeader title="Reminders" />
       <ActionButton variant="primary" accessibilityRole="button" disabled={busy} onPress={() => { reset(); setShowForm(true); }}><Text>+ Add Reminder</Text></ActionButton>
       {showForm && <View style={styles.form}>
         <Text>{editing ? 'Edit reminder' : 'New reminder'}</Text>

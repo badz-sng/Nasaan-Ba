@@ -39,6 +39,15 @@
           "cameraPermission": "Camera access is needed to take an item photo.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "imageWidth": 96,
+          "resizeMode": "contain",
+          "backgroundColor": "#E8F7F5"
+        }
       ]
     ],
     "extra": {

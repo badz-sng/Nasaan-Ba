@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { useState } from 'react';
 import {
@@ -107,8 +108,7 @@ export default function CategoriesScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Categories</Text>
-      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
+      <ScreenHeader title="Categories" />
 
       {isLoading && <ActivityIndicator style={styles.loader} />}
 

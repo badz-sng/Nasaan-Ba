@@ -10,17 +10,14 @@ export function AppLockGate({ children }: { children: ReactNode }) {
   const authenticating = useRef(false);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active' && useAppLock.getState().enabled) useAppLock.setState({ locked: true });
+      if (state === 'background' && useAppLock.getState().enabled) useAppLock.setState({ locked: true });
     });
-    const blur = AppState.addEventListener('blur', () => {
-      if (useAppLock.getState().enabled) useAppLock.setState({ locked: true });
-    });
-    return () => { subscription.remove(); blur.remove(); };
+    return () => { subscription.remove(); };
   }, []);
   const unlock = async () => {
     if (authenticating.current) return;
     authenticating.current = true; setBusy(true); setError('');
-    try { await authenticate(); useAppLock.setState({ locked: AppState.currentState !== 'active' }); }
+    try { await authenticate(); useAppLock.setState({ locked: AppState.currentState === 'background' }); }
     catch (err) { setError(err instanceof Error ? err.message : 'Could not unlock.'); }
     finally { authenticating.current = false; setBusy(false); }
   };

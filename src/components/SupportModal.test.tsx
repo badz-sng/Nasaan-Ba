@@ -1,3 +1,4 @@
+jest.mock('expo-router', () => ({ router: { canGoBack: jest.fn(), back: jest.fn(), replace: jest.fn() } }));
 import { createElement } from 'react';
 import { Alert, Modal, Share } from 'react-native';
 import { ActionButton } from './ActionButton';

@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { ScrollView, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
@@ -29,7 +30,7 @@ export default function AddItemScreen() {
   };
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Add Item</Text>
+      <ScreenHeader title="Add Item" fallback="/(tabs)/items" disabled={isSubmitting || photoBusy} />
       <ItemFields value={draft} onChange={setDraft} errors={fieldErrors} disabled={isSubmitting || photoBusy} onPhotoBusyChange={setPhotoBusy} />
       <Text>Location</Text>
       <LocationPicker value={locationId} label={locationLabel} disabled={isSubmitting}

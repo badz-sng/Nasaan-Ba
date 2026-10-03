@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { useState } from 'react';
 import { ScrollView, Text, Pressable, Alert, ActivityIndicator, StyleSheet } from 'react-native';
@@ -17,8 +18,7 @@ export default function BackupScreen() {
   };
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
-      <Text style={styles.title}>Backup & Restore</Text>
+      <ScreenHeader title="Backup & Restore" />
       <Text>Export your inventory, location history, tags, reminders, and photos as a JSON file. Keep the file somewhere safe.</Text>
       <ActionButton variant="primary" accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => run(async () => {
         const file = await backupService.export(); setMessage(`Backup exported: ${file.name}`);

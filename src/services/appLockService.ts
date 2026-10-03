@@ -22,5 +22,5 @@ export async function setAppLock(enabled: boolean): Promise<void> {
   }
   await authenticate();
   await SecureStore.setItemAsync(KEY, enabled ? 'enabled' : 'disabled');
-  useAppLock.setState({ enabled, locked: enabled && AppState.currentState !== 'active' });
+  useAppLock.setState({ enabled, locked: enabled && AppState.currentState === 'background' });
 }

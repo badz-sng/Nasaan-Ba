@@ -1,3 +1,4 @@
+import { ScreenHeader } from './ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
@@ -49,10 +50,7 @@ export function LocationPicker({ value, label, onChange, error, disabled, visibl
 
       <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setVisible(false)}>
         <View style={styles.modal}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Choose a Location</Text>
-            <ActionButton variant="link" onPress={() => setVisible(false)}>Close</ActionButton>
-          </View>
+          <ScreenHeader title="Choose a location" onBack={() => setVisible(false)} />
 
           {isLoading && <ActivityIndicator style={styles.loader} />}
           {!isLoading && loadError && (

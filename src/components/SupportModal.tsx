@@ -1,3 +1,4 @@
+import { ScreenHeader } from './ScreenHeader';
 import { useState } from 'react';
 import { Alert, Image, Modal, ScrollView, Share, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ export const supportDetails: { qrImage: ImageSourcePropType | null; accountLabel
 };
 
 export function SupportModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const [qrWidth, setQrWidth] = useState(0);
   const [sharing, setSharing] = useState(false);
   const [qrFailed, setQrFailed] = useState(false);
 
@@ -33,10 +35,7 @@ export function SupportModal({ visible, onClose }: { visible: boolean; onClose: 
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} accessibilityViewIsModal>
-          <View style={styles.header}>
-            <Text accessibilityRole="header" style={styles.title}>Support me</Text>
-            <ActionButton variant="link" onPress={onClose} accessibilityLabel="Close support modal">Close</ActionButton>
-          </View>
+          <ScreenHeader title="Support me" onBack={onClose} />
           <Text style={styles.heading}>Help bring Nasaan ba? to Google Play</Text>
           <Text style={styles.body}>Hey! I built this app to make it easier to keep track of our stuff. For now, you can get it through APK sharing while I save up to publish it on Google Play and keep making it better.</Text>
           <View style={styles.donation}>
@@ -44,7 +43,9 @@ export function SupportModal({ visible, onClose }: { visible: boolean; onClose: 
             <Text style={styles.body}>If you feel like chipping in, any amount helps cover publishing costs and gives me more time to work on the app. No pressure at all — the app is free to use either way!</Text>
             {supportDetails.qrImage && !qrFailed ? (
               <>
-                <Image source={supportDetails.qrImage} resizeMode="contain" style={styles.qr} accessibilityLabel="Donation payment QR code" onError={() => setQrFailed(true)} />
+                <View style={styles.qrFrame} onLayout={({ nativeEvent }) => setQrWidth(nativeEvent.layout.width)}>
+                  <Image source={supportDetails.qrImage} resizeMode="contain" style={[styles.qr, { width: qrWidth || '100%', height: qrWidth ? qrWidth * 541 / 415 : 280 }]} accessibilityLabel="Donation payment QR code" onError={() => setQrFailed(true)} />
+                </View>
                 {!!supportDetails.accountLabel && <Text selectable style={styles.account}>{supportDetails.accountLabel}</Text>}
                 <Text style={styles.caption}>Scan with your payment app and check the recipient before sending.</Text>
               </>
@@ -71,7 +72,8 @@ const styles = StyleSheet.create({
   body: { fontSize: 15, lineHeight: 23, color: colors.muted },
   donation: { padding: 16, gap: 12, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: colors.border },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-  qr: { width: '100%', aspectRatio: 1, backgroundColor: '#FFFFFF' },
+  qrFrame: { width: '100%', maxWidth: 320, alignSelf: 'center' },
+  qr: { backgroundColor: '#FFFFFF' },
   account: { textAlign: 'center', fontSize: 16, fontWeight: '600', color: colors.text },
   caption: { fontSize: 13, lineHeight: 20, color: colors.muted, textAlign: 'center' },
   pending: { padding: 24, borderRadius: 8, backgroundColor: '#E8F7F5' },

@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ActionButton } from '@/components/ActionButton';
 import { useState } from 'react';
 import { View, Text, Switch, Alert, ActivityIndicator, StyleSheet } from 'react-native';
@@ -15,8 +16,7 @@ export default function AppLockScreen() {
   };
   return (
     <View style={styles.container}>
-      <Link href="/(tabs)/more" asChild><ActionButton variant="link">‹ Back</ActionButton></Link>
-      <Text style={styles.title}>App Lock</Text>
+      <ScreenHeader title="App Lock" />
       <Text>Require fingerprint, face authentication, or your device passcode when opening or returning to the app.</Text>
       <View style={styles.row}>
         <Text>Enable App Lock</Text>

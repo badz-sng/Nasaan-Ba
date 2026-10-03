@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
 import { LinkPressable } from '@/components/LinkPressable';
@@ -127,13 +128,13 @@ export default function ItemDetailScreen() {
   return <SafeAreaView edges={['top', 'bottom', 'left', 'right']} style={styles.container}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {isEditing ? <>
-        <Text accessibilityRole="header" style={styles.name}>Edit Item</Text>
+        <ScreenHeader title="Edit Item" onBack={() => setIsEditing(false)} disabled={busy} />
         <ItemFields value={draft} onChange={setDraft} errors={fieldErrors} disabled={busy} onPhotoBusyChange={setPhotoBusy} />
       </> : <>
+        <ScreenHeader title="Item details" onBack={goBack} disabled={busy} />
         <View style={styles.hero}>
           {item.photoUri && !photoFailed ? <Image accessibilityLabel={`${item.name} photo`} source={{ uri: item.photoUri }} resizeMode="cover" style={styles.photo} onError={() => setPhotoFailed(true)} /> :
             <View style={[styles.photo, styles.placeholder]}><AppIcon name="items" color={colors.primaryDark} /><Text style={styles.caption}>No photo</Text></View>}
-          <Pressable accessibilityRole="button" accessibilityLabel="Back to items" disabled={busy} onPress={goBack} style={[styles.photoButton, styles.back]}><Text style={styles.backGlyph}>‹</Text></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Item actions" disabled={busy} onPress={showMenu} style={[styles.photoButton, styles.menu]}><Text style={styles.backGlyph}>⋮</Text></Pressable>
         </View>
         <View style={styles.nameRow}><Text accessibilityRole="header" style={styles.name}>{item.name}</Text><ActionButton variant="secondary" disabled={busy} onPress={() => setIsEditing(true)}>✎ Edit</ActionButton></View>
